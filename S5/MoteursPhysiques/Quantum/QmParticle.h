@@ -11,6 +11,8 @@
 #include <Application/GxParticle.h>
 #include <Application/GxParticle.h>
 #include <glm/glm.hpp>
+
+#include "QmAABB.h"
 #include "QmBody.h"
 
 
@@ -20,8 +22,8 @@ namespace Quantum {
 	class QmParticle : public QmBody {
 	public:
 		QmParticle();
-		QmParticle(glm::vec3 position, glm::vec3 velocity, glm::vec3 acceleration, float mass, int charge);
-		QmParticle(glm::vec3 position, glm::vec3 velocity, glm::vec3 acceleration, float mass, int charge, float damping);
+		QmParticle(glm::vec3 position, glm::vec3 velocity, glm::vec3 acceleration, float mass, int charge, float radius);
+		QmParticle(glm::vec3 position, glm::vec3 velocity, glm::vec3 acceleration, float mass, int charge, float radius, float damping);
 		~QmParticle() override;
 		void integrate(float t) override;
 		void integrate(float, unsigned int i) final;
@@ -31,20 +33,27 @@ namespace Quantum {
 
         void reset() override;
 
-		std::array<glm::vec3, 4> getAcc() const;
-		std::array<glm::vec3, 4> getVel() const;
+		[[nodiscard]] std::array<glm::vec3, 4> getAcc() const;
+		[[nodiscard]] std::array<glm::vec3, 4> getVel() const;
 		[[nodiscard]] std::array<glm::vec3, 4> getPos() const;
 
         [[nodiscard]] int getCharge() const;
-
-        [[nodiscard]] float getInvMass() const;
-        [[nodiscard]] float getMass() const;
 
         void setUpdater(QmUpdater* updater);
 		[[nodiscard]] QmUpdater* getUpdater() const;
 
 		void setDamping(float damping);
 		[[nodiscard]] float getDamping() const;
+
+		[[nodiscard]] QmAABB getAABB() const final;
+
+		[[nodiscard]] glm::vec3 getPosition() const final;
+		[[nodiscard]] float getRadius() const final;
+		void setPosition(const glm::vec3& position) final;
+		[[nodiscard]] glm::vec3 getVelocity() const final;
+		void setVelocity(const glm::vec3& velocity) final;
+		[[nodiscard]] float getMass() const override;
+		[[nodiscard]] float getRestitution() override;
 
 	private:
 		QmUpdater* updater = nullptr;
@@ -56,6 +65,8 @@ namespace Quantum {
         float invMass{};
 
 		float damping{};
+		float radius;
+		float restitution{1};
 
 	};
 }

@@ -4,6 +4,8 @@
 #include <list>
 #include <vector>
 #include <glm/vec3.hpp>
+
+#include "QmContact.h"
 #include "QmForceRegistry.h"
 
 namespace Quantum {
@@ -21,6 +23,10 @@ namespace Quantum {
 		[[nodiscard]] std::vector<QmBody*> getBodies() const;
 		[[nodiscard]] std::vector<QmForceRegistry> getForceRegistry() const;
 		[[nodiscard]] std::vector<QmForceRegistry> &getForceRegistry();
+		void setDelta(float delta);
+		void setCollision(bool collision);
+		void setUseDelta(bool useDelta);
+		[[nodiscard]] bool isCollision() const;
 
 		void clear();
 
@@ -30,6 +36,7 @@ namespace Quantum {
 		bool use_delta = false;
 		float delta = 0.0f;
 		bool useRK4 = false;
+		bool collision = true;
 		std::vector<QmBody*> bodies;
         std::vector<QmForceRegistry> forceRegistries;
         const glm::vec3 gravity {0.0, -9.81, 0.0};
@@ -55,8 +62,15 @@ namespace Quantum {
 		void integrate(float, unsigned int i);
 		void integrateRK4(float t);
 		void computeAccelerations(unsigned int i);
+		std::vector<QmContact> broadPhase();
+		std::vector<QmContact> narrowPhase(const std::vector<QmContact>& contacts);
+		void resolve(const std::vector<QmContact>& contacts);
 	};
 
+	inline void QmWorld::setUseDelta(bool useDelta)
+	{
+		this->use_delta = useDelta;
+	}
 }
 
 #endif

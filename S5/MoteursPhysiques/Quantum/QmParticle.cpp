@@ -1,5 +1,7 @@
 #include "QmParticle.h"
 
+#include <bits/ranges_util.h>
+
 #include "QmUpdater.h"
 
 using namespace Quantum;
@@ -11,17 +13,17 @@ QmParticle::QmParticle() : QmBody(TYPE_PARTICLE), position({{0, 0, 0}, {0, 0, 0}
 }
 
 QmParticle::QmParticle(const glm::vec3 position, const glm::vec3 velocity, const glm::vec3 acceleration,
-                       const float mass, const int charge)
+                       const float mass, const int charge, const float radius)
     : QmBody(TYPE_PARTICLE), position({position, position, position, position}),
       velocity({velocity, velocity, velocity, velocity}),
       acceleration({acceleration, acceleration, acceleration, acceleration}),
-      charge(charge), invMass(1 - mass), damping(0.995f)
+      charge(charge), radius(radius), invMass(1 - mass), damping(0.995f)
 {
 }
 
 QmParticle::QmParticle(const glm::vec3 position, const glm::vec3 velocity, const glm::vec3 acceleration,
-                       const float mass, const int charge,
-                       const float damping): QmParticle(position, velocity, acceleration, mass, charge)
+                       const float mass, const int charge, const float radius,
+                       const float damping): QmParticle(position, velocity, acceleration, mass, charge, radius)
 {
     this->damping = damping;
 }
@@ -107,6 +109,38 @@ float QmParticle::getDamping() const
     return damping;
 }
 
+QmAABB QmParticle::getAABB() const
+{
+    const glm::vec3 min = position[0] - radius;
+    const glm::vec3 max = position[0] + radius;
+    return {min, max};
+}
+
+float QmParticle::getRadius() const
+{
+    return radius;
+}
+
+void QmParticle::setPosition(const glm::vec3& position)
+{
+    this->position[0] = position;
+}
+
+glm::vec3 QmParticle::getVelocity() const
+{
+    return getVel()[0];
+}
+
+void QmParticle::setVelocity(const glm::vec3& velocity)
+{
+    this->velocity[0] = velocity;
+}
+
+glm::vec3 QmParticle::getPosition() const
+{
+    return getPos()[0];
+}
+
 void QmParticle::addForce(const glm::vec3& force, unsigned int i)
 {
     forceAccumulator[i] += force;
@@ -129,12 +163,12 @@ int QmParticle::getCharge() const
     return charge;
 }
 
-float QmParticle::getInvMass() const
-{
-    return invMass;
-}
-
 float QmParticle::getMass() const
 {
     return 1 - invMass;
+}
+
+float QmParticle::getRestitution()
+{
+    return restitution;
 }

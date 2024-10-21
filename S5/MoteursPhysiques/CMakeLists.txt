@@ -48,6 +48,10 @@ add_executable(Application
         Quantum/QmSpring.h
         Quantum/QmFixedSpring.cpp
         Quantum/QmFixedSpring.h
+        Quantum/QmContact.cpp
+        Quantum/QmContact.h
+        Quantum/QmAABB.cpp
+        Quantum/QmAABB.h
 )
 
 target_link_libraries(Application ${GLUT_LIBRARIES} ${OPENGL_LIBRARIES} ${GLEW_LIBRARIES})

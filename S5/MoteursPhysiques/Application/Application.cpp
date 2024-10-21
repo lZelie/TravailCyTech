@@ -25,18 +25,18 @@ using namespace Quantum;
 
 
 GxWorld gxWorld;
-QmWorld pxWorld{true, 0.0002f, false};
+QmWorld pxWorld{true, 0.02f, false};
 
 glm::vec3* mousePointer;
-int mouseCharge = -1;
+int mouseCharge = 0;
 
 int scene = 0;
 
 // ********************** GLUT
 // Variables globales
 
-int SCREEN_X = 800;
-int SCREEN_Y = 800;
+int SCREEN_X = 1024;
+int SCREEN_Y = 1024;
 int VIEWPORT_X = 5;
 int VIEWPORT_Y = 5;
 int VIEWPORT_Z = 200;
@@ -62,7 +62,7 @@ bool gravity = true;
 bool drag = true;
 bool magnetism = false;
 bool spring = false;
-bool fixed_position = false;
+bool fixed_position = true;
 float damping = 0.999f;
 float spring_constant = 10000.f;
 std::vector<QmParticle*> other{};
@@ -89,9 +89,10 @@ glm::vec3 randomUpVector(float min, float max)
 QmParticle*
 createParticle(glm::vec3 color, glm::vec3 pos, glm::vec3 initSpeed, int charge, std::vector<QmParticle*>& others)
 {
-    auto rad = 0.1f + 0.2f * ((rand() % 100) / 100.f);
+    const auto rad = magnetism ? 0.2f : 0.1f + 0.2f * ((rand() % 100) / 100.f);
+
     GxParticle* g = new GxParticle(color, rad, pos);
-    QmParticle* p = new QmParticle(pos, initSpeed, randomVector(0, 0), rad, charge, damping);
+    QmParticle* p = new QmParticle(pos, initSpeed, randomVector(0, 0), rad, charge, rad, damping);
     p->setUpdater(new GxUpdater(g));
     gxWorld.addParticle(g);
     pxWorld.addBody(p);
@@ -101,8 +102,8 @@ createParticle(glm::vec3 color, glm::vec3 pos, glm::vec3 initSpeed, int charge, 
     {
         if (fixed_position && mousePointer)
         {
-            pxWorld.addForceRegistry(QmForceRegistry(p, new QmFixedMagnetism(mousePointer, &mouseCharge, 10000, 10)));
-            pxWorld.addForceRegistry(QmForceRegistry(p, new QmMagnetism(others, 1000, 100)));
+            pxWorld.addForceRegistry(QmForceRegistry(p, new QmFixedMagnetism(mousePointer, &mouseCharge, 10000, 100)));
+            pxWorld.addForceRegistry(QmForceRegistry(p, new QmMagnetism(others, 10000, 100)));
         }
         else { pxWorld.addForceRegistry(QmForceRegistry(p, new QmMagnetism(others, 10000, 100))); }
     }
@@ -123,6 +124,7 @@ void initScene1()
 
 void initScene2()
 {
+    mousePointer = new glm::vec3(0, 4.5, 0);
     srand(0);
     printf("Scene 2.\n");
     printf("Magnets.\n");
@@ -151,7 +153,7 @@ void initScene3()
     mousePointer = new glm::vec3(0, 4.5, 0);
     float r1 = 0.1f + 0.2f * ((rand() % 100) / 100.f);
     GxParticle* g1 = new GxParticle(randomVector(0.1, 1.0), r1, randomVector(0.1, 1.0));
-    QmParticle* p1 = new QmParticle(randomVector(0.1, 1.0), randomVector(0, 0), randomVector(0, 0), r1, 0);
+    QmParticle* p1 = new QmParticle(randomVector(0.1, 1.0), randomVector(0, 0), randomVector(0, 0), r1, 0, r1);
     p1->setDamping(damping);
     p1->setUpdater(new GxUpdater(g1));
     gxWorld.addParticle(g1);
@@ -159,7 +161,7 @@ void initScene3()
     pxWorld.addForceRegistry(QmForceRegistry(p1, new QmFixedSpring(*mousePointer, 1.0f, spring_constant)));
     pxWorld.addForceRegistry(QmForceRegistry(p1, new QmGravity()));
     GxParticle* g2 = new GxParticle(randomVector(0.1, 1.0), r1, randomVector(0.1, 1.0));
-    QmParticle* p2 = new QmParticle(randomVector(0.1, 1.0), randomVector(0, 0), randomVector(0, 0), r1, 0);
+    QmParticle* p2 = new QmParticle(randomVector(0.1, 1.0), randomVector(0, 0), randomVector(0, 0), r1, 0, r1);
     p2->setDamping(damping);
     p2->setUpdater(new GxUpdater(g2));
     gxWorld.addParticle(g2);
@@ -167,7 +169,7 @@ void initScene3()
     pxWorld.addForceRegistry(QmForceRegistry(p2, new QmFixedSpring(*mousePointer, 1.0f, spring_constant)));
     pxWorld.addForceRegistry(QmForceRegistry(p2, new QmGravity()));
     GxParticle* g3 = new GxParticle(randomVector(0.1, 1.0), r1, randomVector(0.1, 1.0));
-    QmParticle* p3 = new QmParticle(randomVector(0.1, 1.0), randomVector(0, 0), randomVector(0, 0), r1, 0);
+    QmParticle* p3 = new QmParticle(randomVector(0.1, 1.0), randomVector(0, 0), randomVector(0, 0), r1, 0, r1);
     p3->setDamping(damping);
     p3->setUpdater(new GxUpdater(g3));
     gxWorld.addParticle(g3);
@@ -180,7 +182,7 @@ void initScene3()
     pxWorld.addForceRegistry(QmForceRegistry(p3, new QmSpring(p1, 1.0f, spring_constant)));
 
     GxParticle* g4 = new GxParticle(randomVector(0.1, 1.0), r1, randomVector(0.1, 1.0));
-    QmParticle* p4 = new QmParticle(randomVector(0.1, 1.0), randomVector(0, 0), randomVector(0, 0), r1, 0);
+    QmParticle* p4 = new QmParticle(randomVector(0.1, 1.0), randomVector(0, 0), randomVector(0, 0), r1, 0, r1);
     p4->setDamping(damping);
     p4->setUpdater(new GxUpdater(g4));
     gxWorld.addParticle(g4);
@@ -191,7 +193,7 @@ void initScene3()
     pxWorld.addForceRegistry(QmForceRegistry(p4, new QmGravity()));
 
     GxParticle* g5 = new GxParticle(randomVector(0.1, 1.0), r1, randomVector(0.1, 1.0));
-    QmParticle* p5 = new QmParticle(randomVector(0.1, 1.0), randomVector(0, 0), randomVector(0, 0), r1, 0);
+    QmParticle* p5 = new QmParticle(randomVector(0.1, 1.0), randomVector(0, 0), randomVector(0, 0), r1, 0, r1);
     p5->setDamping(damping);
     p5->setUpdater(new GxUpdater(g5));
     gxWorld.addParticle(g5);
@@ -200,7 +202,7 @@ void initScene3()
     pxWorld.addForceRegistry(QmForceRegistry(p5, new QmGravity()));
 
     GxParticle* g6 = new GxParticle(randomVector(0.1, 1.0), r1, randomVector(0.1, 1.0));
-    QmParticle* p6 = new QmParticle(randomVector(0.1, 1.0), randomVector(0, 0), randomVector(0, 0), r1, 0);
+    QmParticle* p6 = new QmParticle(randomVector(0.1, 1.0), randomVector(0, 0), randomVector(0, 0), r1, 0, r1);
     p6->setDamping(damping);
     p6->setUpdater(new GxUpdater(g6));
     gxWorld.addParticle(g6);
@@ -208,7 +210,7 @@ void initScene3()
     pxWorld.addForceRegistry(QmForceRegistry(p6, new QmSpring(p5, 1.0f, spring_constant)));
     pxWorld.addForceRegistry(QmForceRegistry(p6, new QmGravity()));
     GxParticle* g7 = new GxParticle(randomVector(0.1, 1.0), r1, randomVector(0.1, 1.0));
-    QmParticle* p7 = new QmParticle(randomVector(0.1, 1.0), randomVector(0, 0), randomVector(0, 0), r1, 0);
+    QmParticle* p7 = new QmParticle(randomVector(0.1, 1.0), randomVector(0, 0), randomVector(0, 0), r1, 0, r1);
     p7->setDamping(damping);
     p7->setUpdater(new GxUpdater(g7));
     gxWorld.addParticle(g7);
@@ -216,7 +218,7 @@ void initScene3()
     pxWorld.addForceRegistry(QmForceRegistry(p7, new QmSpring(p5, 1.0f, spring_constant)));
     pxWorld.addForceRegistry(QmForceRegistry(p7, new QmGravity()));
     GxParticle* g8 = new GxParticle(randomVector(0.1, 1.0), r1, randomVector(0.1, 1.0));
-    QmParticle* p8 = new QmParticle(randomVector(0.1, 1.0), randomVector(0, 0), randomVector(0, 0), r1, 0);
+    QmParticle* p8 = new QmParticle(randomVector(0.1, 1.0), randomVector(0, 0), randomVector(0, 0), r1, 0, r1);
     p8->setDamping(damping);
     p8->setUpdater(new GxUpdater(g8));
     gxWorld.addParticle(g8);
@@ -229,7 +231,7 @@ void initScene3()
     pxWorld.addForceRegistry(QmForceRegistry(p8, new QmSpring(p6, 1.0f, spring_constant)));
 
     GxParticle* g9 = new GxParticle(randomVector(0.1, 1.0), r1, randomVector(0.1, 1.0));
-    QmParticle* p9 = new QmParticle(randomVector(0.1, 1.0), randomVector(0, 0), randomVector(0, 0), r1, 0);
+    QmParticle* p9 = new QmParticle(randomVector(0.1, 1.0), randomVector(0, 0), randomVector(0, 0), r1, 0, r1);
     p9->setDamping(damping);
     p9->setUpdater(new GxUpdater(g9));
     gxWorld.addParticle(g9);
@@ -300,7 +302,6 @@ void idleFunc()
 {
     int timer = glutGet(GLUT_ELAPSED_TIME);
     float dt = (float)(timer - timeold) / 1000.f;
-    timeold = timer;
 
     calculateFPS(dt);
     if (!paused) pxWorld.simulate(dt);
@@ -314,6 +315,8 @@ void idleFunc()
     }
 
     glutPostRedisplay();
+    timeold = timer;
+
 }
 
 void drawFunc()
@@ -516,9 +519,11 @@ void keyFunc(unsigned char key, int x, int y)
         toggleScene(1);
         break;
     case '2':
+        pxWorld.setDelta(0.05f);
         toggleScene(2);
         break;
     case '3':
+        pxWorld.setDelta(0.0002f);
         toggleScene(3);
         break;
     case 'g':
@@ -544,10 +549,7 @@ void keyFunc(unsigned char key, int x, int y)
         }
         break;
     case 'f':
-        fixed_position = !fixed_position;
-        clearWorld();
-        mousePointer = new glm::vec3(0, 4.5, 0);
-        initScene2();
+        mouseCharge = mouseCharge == 0 ? 1 : 0;
         break;
     case 'c':
         mouseCharge *= -1;
@@ -575,6 +577,9 @@ void keyFunc(unsigned char key, int x, int y)
     case 'R':
         pxWorld.set_use_rk4(!pxWorld.use_rk4());
         break;
+    case 'v':
+    case 'V':
+        pxWorld.setCollision(!pxWorld.isCollision());
     default:
         break;
     }

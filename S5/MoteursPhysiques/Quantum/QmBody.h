@@ -2,9 +2,12 @@
 #ifndef QMBODY_H
 #define QMBODY_H
 
+#include <mutex>
 #include <Application/GxParticle.h>
 #include <Application/GxParticle.h>
 #include <glm/glm.hpp>
+
+#include "QmAABB.h"
 #include "QmUpdater.h"
 
 namespace Quantum
@@ -25,8 +28,16 @@ namespace Quantum
         virtual void reset() = 0;
 
         [[nodiscard]] int getType() const { return type; }
-
+        [[nodiscard]] virtual QmAABB getAABB() const = 0;
+        [[nodiscard]] virtual glm::vec3 getPosition() const = 0;
+        virtual void setPosition(const glm::vec3& position) = 0;
+        [[nodiscard]] virtual glm::vec3 getVelocity() const = 0;
+        virtual void setVelocity(const glm::vec3& velocity) = 0;
+        [[nodiscard]] virtual float getRestitution() = 0;
+        [[nodiscard]] virtual float getMass() const = 0;
+        [[nodiscard]] virtual float getRadius() const = 0;
         virtual ~QmBody() = default;
+        mutable  std::mutex mutex{};
 
     protected:
         explicit QmBody(int type) : type(type)
