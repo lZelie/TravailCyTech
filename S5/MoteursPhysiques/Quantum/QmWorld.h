@@ -19,8 +19,10 @@ namespace Quantum {
 		~QmWorld();
 		void simulate(float t);
 		void addBody(QmBody*);
+		void addStaticBody(QmBody* body);
         void addForceRegistry(const QmForceRegistry &forceRegistry);
 		[[nodiscard]] std::vector<QmBody*> getBodies() const;
+		[[nodiscard]] std::vector<QmBody*> get_static_bodies() const;
 		[[nodiscard]] std::vector<QmForceRegistry> getForceRegistry() const;
 		[[nodiscard]] std::vector<QmForceRegistry> &getForceRegistry();
 		void setDelta(float delta);
@@ -38,6 +40,7 @@ namespace Quantum {
 		bool useRK4 = false;
 		bool collision = true;
 		std::vector<QmBody*> bodies;
+		std::vector<QmBody*> static_bodies;
         std::vector<QmForceRegistry> forceRegistries;
         const glm::vec3 gravity {0.0, -9.81, 0.0};
 

@@ -11,6 +11,6 @@ namespace Quantum {
     }
 
     void QmGravity::update(QmParticle *particle, unsigned int i) {
-        particle->addForce({0.0, -9.81, 0.0}, i);
+        particle->addForce(glm::vec3{0.0, -9.81, 0.0} * particle->getMass(), i);
     }
 } // Quantum

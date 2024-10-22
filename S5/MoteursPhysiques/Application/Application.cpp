@@ -18,6 +18,7 @@
 #include "Quantum/QmMagnetism.h"
 #include "Quantum/QmFixedMagnetism.h"
 #include "Quantum/QmFixedSpring.h"
+#include "Quantum/QmHalfspace.h"
 #include "Quantum/QmSpring.h"
 
 using namespace std;
@@ -63,6 +64,8 @@ bool drag = true;
 bool magnetism = false;
 bool spring = false;
 bool fixed_position = true;
+bool generate_particles = true;
+bool use_static = true;
 float damping = 0.999f;
 float spring_constant = 10000.f;
 std::vector<QmParticle*> other{};
@@ -143,8 +146,8 @@ void initScene2()
 void initScene3()
 {
     srand(0);
-    printf("Scene 2.\n");
-    printf("Empty.\n");
+    printf("Scene 3.\n");
+    printf("Springs.\n");
     gravity = true;
     magnetism = false;
     drag = false;
@@ -240,6 +243,129 @@ void initScene3()
     pxWorld.addForceRegistry(QmForceRegistry(p9, new QmGravity()));
 }
 
+void initScene4()
+{
+    srand(0);
+    printf("Scene 4.\n");
+    printf("Halfspaces.\n");
+    gravity = true;
+    magnetism = false;
+    spring = false;
+    other.clear();
+    constexpr float r_small = 0.1f;
+    constexpr float r_big = 0.9f;
+    auto* g1 = new GxParticle(randomVector(0.1, 1.0), r_big, glm::vec3{-0.7f, 0.2f, -0.7f});
+    auto* p1 = new QmParticle(glm::vec3{-0.7f, 0.2f, -0.7f}, randomVector(0, 0), randomVector(0, 0), r_big, 0, r_big);
+    p1->setDamping(damping);
+    p1->setUpdater(new GxUpdater(g1));
+    gxWorld.addParticle(g1);
+    pxWorld.addBody(p1);
+    pxWorld.addForceRegistry(QmForceRegistry(p1, new QmGravity()));
+    auto* g2 = new GxParticle(randomVector(0.1, 1.0), r_big, glm::vec3{0.7f, 0.7f, 0.7f});
+    auto* p2 = new QmParticle(glm::vec3{0.7f, 0.7f, 0.7f}, randomVector(0, 0), randomVector(0, 0), r_big, 0, r_big);
+    p2->setDamping(damping);
+    p2->setUpdater(new GxUpdater(g2));
+    gxWorld.addParticle(g2);
+    pxWorld.addBody(p2);
+    pxWorld.addForceRegistry(QmForceRegistry(p2, new QmGravity()));
+    auto* g3 = new GxParticle(randomVector(0.1, 1.0), r_small, glm::vec3{-0.7f, 0.7f, -0.7f});
+    auto* p3 = new QmParticle(glm::vec3{-0.7f, 0.7f, -0.7f}, randomVector(0, 0), randomVector(0, 0), r_small, 0,
+                              r_small);
+    p3->setDamping(damping);
+    p3->setUpdater(new GxUpdater(g3));
+    gxWorld.addParticle(g3);
+    pxWorld.addBody(p3);
+    pxWorld.addForceRegistry(QmForceRegistry(p3, new QmGravity()));
+    auto* g4 = new GxParticle(randomVector(0.1, 1.0), r_small, glm::vec3{0.7f, 0.2f, 0.7f});
+    auto* p4 = new QmParticle(glm::vec3{0.7f, 0.2f, 0.7f}, randomVector(0, 0), randomVector(0, 0), r_small, 0, r_small);
+    p4->setDamping(damping);
+    p4->setUpdater(new GxUpdater(g4));
+    gxWorld.addParticle(g4);
+    pxWorld.addBody(p4);
+    pxWorld.addForceRegistry(QmForceRegistry(p4, new QmGravity()));
+    const GxPlane gx_plane{randomVector(0.1, 1.0), glm::vec3{0.0f, 1.0f, 0.0f}, -0.5f, 50.0f};
+    auto* qm_plane = new QmHalfspace(glm::vec3{0.0f, -0.5f, 0.0f}, glm::vec3{0.0f, 1.0f, 0.0f}, -0.5f);
+    gxWorld.addPlane(gx_plane);
+    pxWorld.addStaticBody(qm_plane);
+}
+
+void initScene5()
+{
+    srand(0);
+    printf("Scene 5: Plinko.\n");
+    printf("Type space to pause.\n");
+    gravity = true;
+    magnetism = false;
+    spring = false;
+    other.clear();
+    mousePointer = new glm::vec3(0, 4.5, 0);
+    const GxPlane gx_plane{randomVector(0.1, 1.0), glm::vec3{0.0f, 1.0f, 0.0f}, -0.5f, 50.0f};
+    auto* qm_plane = new QmHalfspace(glm::vec3{0.0f, -0.5f, 0.0f}, glm::vec3{0.0f, 1.0f, 0.0f}, -0.5f);
+    gxWorld.addPlane(gx_plane);
+    pxWorld.addStaticBody(qm_plane);
+
+    for (int i = 50; i >= 0; i--)
+    {
+        const int scatter = 50 - i + 1;
+        for (int j = 1; j <= scatter; j++)
+        {
+            const float pos_y = static_cast<float>(i) / 10.0f;
+            const float pos_x = (static_cast<float>(rand() % (scatter * 2)) - static_cast<float>(scatter)) / 10.0f;
+            const float pos_z = (static_cast<float>(rand() % (scatter * 2)) - static_cast<float>(scatter)) / 10.0f;
+            auto* gm_particle = new GxParticle(glm::vec3{1.0f}, 0.1f, glm::vec3{pos_x, pos_y, pos_z});
+            auto* qm_particle = new QmParticle(glm::vec3{pos_x, pos_y, pos_z}, glm::vec3{0.0f}, glm::vec3{0.0f}, 0.5f,
+                                               0,
+                                               0.1f);
+            gxWorld.addParticle(gm_particle);
+            if (use_static)
+            {
+                pxWorld.addStaticBody(qm_particle);
+            }
+            else
+            {
+                pxWorld.addBody(qm_particle);
+            }
+        }
+    }
+}
+
+void initScene6()
+{
+    srand(0);
+    printf("Scene 6: In Ze Boîte.\n");
+    printf("Type space to pause.\n");
+    gravity = true;
+    magnetism = false;
+    spring = false;
+    other.clear();
+    mousePointer = new glm::vec3(0, 4.5, 0);
+
+    const GxPlane gx_plane1{randomVector(0.1, 1.0), glm::vec3{0.0f, 1.0f, 0.0f}, -5.0f, 5.0f};
+    auto* qm_plane1 = new QmHalfspace(glm::vec3{0.0f, -0.5f, 0.0f}, glm::vec3{0.0f, 1.0f, 0.0f}, -5.0f);
+    gxWorld.addPlane(gx_plane1);
+    pxWorld.addStaticBody(qm_plane1);
+    const GxPlane gx_plane2{randomVector(0.1, 1.0), glm::vec3{0.0f, -1.0f, 0.0f}, -5.0f, 5.0f};
+    auto* qm_plane2 = new QmHalfspace(glm::vec3{0.0f, 0.5f, 0.0f}, glm::vec3{0.0f, -1.0f, 0.0f}, -5.0f);
+    gxWorld.addPlane(gx_plane2);
+    pxWorld.addStaticBody(qm_plane2);
+    const GxPlane gx_plane3{randomVector(0.1, 1.0), glm::vec3{1.0f, 0.0f, 0.0f}, -5.0f, 5.0f};
+    auto* qm_plane3 = new QmHalfspace(glm::vec3{0.0f, 0.5f, 0.0f}, glm::vec3{1.0f, 0.0f, 0.0f}, -5.0f);
+    gxWorld.addPlane(gx_plane3);
+    pxWorld.addStaticBody(qm_plane3);
+    const GxPlane gx_plane4{randomVector(0.1, 1.0), glm::vec3{-1.0f, 0.0f, 0.0f}, -5.0f, 5.0f};
+    auto* qm_plane4 = new QmHalfspace(glm::vec3{0.0f, 0.5f, 0.0f}, glm::vec3{-1.0f, 0.0f, 0.0f}, -5.0f);
+    gxWorld.addPlane(gx_plane4);
+    pxWorld.addStaticBody(qm_plane4);
+    const GxPlane gx_plane5{randomVector(0.1, 1.0), glm::vec3{0.0f, 0.0f, -1.0f}, -5.0f, 5.0f};
+    auto* qm_plane5 = new QmHalfspace(glm::vec3{0.0f, 0.5f, 0.0f}, glm::vec3{0.0f, 0.0f, -1.0f}, -5.0f);
+    gxWorld.addPlane(gx_plane5);
+    pxWorld.addStaticBody(qm_plane5);
+    const GxPlane gx_plane6{randomVector(0.1, 1.0), glm::vec3{0.0f, 0.0f, 1.0f}, -5.0f, 5.0f};
+    auto* qm_plane6 = new QmHalfspace(glm::vec3{0.0f, 0.5f, 0.0f}, glm::vec3{0.0f, 0.0f, 1.0f}, -5.0f);
+    gxWorld.addPlane(gx_plane6);
+    pxWorld.addStaticBody(qm_plane6);
+}
+
 // ***************************** GLUT methods
 
 void resetView()
@@ -306,7 +432,7 @@ void idleFunc()
     calculateFPS(dt);
     if (!paused) pxWorld.simulate(dt);
 
-    if (mousePointer != nullptr && !magnetism && !spring)
+    if (generate_particles && mousePointer != nullptr && !magnetism && !spring)
     {
         for (int i = 0; i < 1; i++)
         {
@@ -316,7 +442,6 @@ void idleFunc()
 
     glutPostRedisplay();
     timeold = timer;
-
 }
 
 void drawFunc()
@@ -338,6 +463,29 @@ void drawFunc()
         glScaled(p->getRadius(), p->getRadius(), p->getRadius());
         glCallList(DrawListSphere);
         glPopMatrix();
+    }
+    for (const auto& [color, normal, offset, length] : gxWorld.get_planes())
+    {
+        glBegin(GL_LINES);
+        glColor3f(color.x, color.y, color.z);
+        glm::vec3 u{1.0f, 0.0f, 0.0f};
+        glm::vec3 v1 = cross(normal, u);
+        glm::vec3 v2 = cross(normal, v1);
+        v1 = length * normalize(v1);
+        v2 = length * normalize(v2);
+        glm::vec3 a = offset * normal + v1 + v2;
+        glm::vec3 b = offset * normal - v1 + v2;
+        glm::vec3 c = offset * normal - v1 - v2;
+        glm::vec3 d = offset * normal + v1 - v2;
+        glVertex3fv(&a[0]);
+        glVertex3fv(&b[0]);
+        glVertex3fv(&b[0]);
+        glVertex3fv(&c[0]);
+        glVertex3fv(&c[0]);
+        glVertex3fv(&d[0]);
+        glVertex3fv(&d[0]);
+        glVertex3fv(&a[0]);
+        glEnd();
     }
     if (mousePointer)
     {
@@ -400,8 +548,8 @@ void motionFunc(int x, int y)
             *mousePointer += glm::vec3(x - mx, my - y, 0.f) / 15.f;
     }
 
-    mx = (float)x;
-    my = (float)y;
+    mx = static_cast<float>(x);
+    my = static_cast<float>(y);
 }
 
 void clearWorld()
@@ -426,6 +574,15 @@ void toggleScene(int s)
         break;
     case 3:
         initScene3();
+        break;
+    case 4:
+        initScene4();
+        break;
+    case 5:
+        initScene5();
+        break;
+    case 6:
+        initScene6();
         break;
     default:
         break;
@@ -523,8 +680,20 @@ void keyFunc(unsigned char key, int x, int y)
         toggleScene(2);
         break;
     case '3':
-        pxWorld.setDelta(0.0002f);
+        pxWorld.setDelta(0.0005f);
         toggleScene(3);
+        break;
+    case '4':
+        pxWorld.setDelta(0.05f);
+        toggleScene(4);
+        break;
+    case '5':
+        pxWorld.setDelta(0.005f);
+        toggleScene(5);
+        break;
+    case '6':
+        pxWorld.setDelta(0.05f);
+        toggleScene(6);
         break;
     case 'g':
         gravity = !gravity;
@@ -553,6 +722,12 @@ void keyFunc(unsigned char key, int x, int y)
         break;
     case 'c':
         mouseCharge *= -1;
+        break;
+    case 'z':
+        generate_particles = !generate_particles;
+        break;
+    case 's':
+        use_static = !use_static;
         break;
     case ' ':
         paused = !paused;

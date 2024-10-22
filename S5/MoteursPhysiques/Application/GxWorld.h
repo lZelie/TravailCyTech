@@ -3,20 +3,29 @@
 
 #include <list>
 
+#include "GxPlane.h"
+
 class GxParticle;
 
-class GxWorld {
+class GxWorld
+{
 public:
-	GxWorld();
-	~GxWorld();
-	void addParticle(GxParticle*);
-	std::list<GxParticle*> getParticles();
-	void setParticles(std::list<GxParticle*>);
+    GxWorld();
+    ~GxWorld();
+    void addParticle(GxParticle*);
+    std::list<GxParticle*> getParticles();
+    void setParticles(std::list<GxParticle*>);
 
-	void clear();
+    void addPlane(const GxPlane& plane);
+    [[nodiscard]] std::list<GxPlane> get_planes() const;
+
+    void set_planes(const std::list<GxPlane>& planes);
+
+    void clear();
 
 private:
-	std::list<GxParticle*> particles;
+    std::list<GxParticle*> particles;
+    std::list<GxPlane> planes;
 };
 
 #endif

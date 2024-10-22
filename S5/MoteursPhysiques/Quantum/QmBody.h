@@ -12,7 +12,7 @@
 
 namespace Quantum
 {
-    const int TYPE_PARTICLE = 0;
+    constexpr int TYPE_PARTICLE = 0;
 
     class QmBody
     {

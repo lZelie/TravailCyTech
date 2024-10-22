@@ -52,6 +52,10 @@ add_executable(Application
         Quantum/QmContact.h
         Quantum/QmAABB.cpp
         Quantum/QmAABB.h
+        Quantum/QmHalfspace.cpp
+        Quantum/QmHalfspace.h
+        Application/GxPlane.cpp
+        Application/GxPlane.h
 )
 
 target_link_libraries(Application ${GLUT_LIBRARIES} ${OPENGL_LIBRARIES} ${GLEW_LIBRARIES})

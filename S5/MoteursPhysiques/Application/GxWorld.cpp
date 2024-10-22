@@ -10,9 +10,7 @@ GxWorld::GxWorld()
 }
 
 GxWorld::~GxWorld()
-{
-
-}
+= default;
 
 void GxWorld::addParticle(GxParticle* p)
 {
@@ -29,11 +27,27 @@ void GxWorld::setParticles(std::list<GxParticle*> particles)
 	this->particles = std::move(particles);
 }
 
+void GxWorld::addPlane(const GxPlane& plane)
+{
+	planes.push_back(plane);
+}
+
+std::list<GxPlane> GxWorld::get_planes() const
+{
+	return planes;
+}
+
+void GxWorld::set_planes(const std::list<GxPlane>& planes)
+{
+	this->planes = planes;
+}
+
 void GxWorld::clear()
 {
-	for (GxParticle* p : particles)
+	for (const GxParticle* p : particles)
 	{
 		delete p;
 	}
 	particles.clear();
+	planes.clear();
 }
