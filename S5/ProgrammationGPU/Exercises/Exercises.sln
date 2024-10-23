@@ -7,6 +7,10 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "HelloWorld", "Exercises.vcx
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "TP1-Julia", "..\TP1-Julia\TP1-Julia.vcxproj", "{88340C8C-605F-443A-859D-8C62A56DE1D1}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "TP2-RayTracer", "..\TP2-RayTracer\TP2-RayTracer.vcxproj", "{83FC71C9-D52E-4A62-B457-029B9A271C97}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "TP3-Bugs", "..\TP3-Bugs\TP3-Bugs.vcxproj", "{1922CFD1-7AB5-4CD4-A6A0-1314C83A9AF3}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
@@ -21,6 +25,14 @@ Global
 		{88340C8C-605F-443A-859D-8C62A56DE1D1}.Debug|x64.Build.0 = Debug|x64
 		{88340C8C-605F-443A-859D-8C62A56DE1D1}.Release|x64.ActiveCfg = Release|x64
 		{88340C8C-605F-443A-859D-8C62A56DE1D1}.Release|x64.Build.0 = Release|x64
+		{83FC71C9-D52E-4A62-B457-029B9A271C97}.Debug|x64.ActiveCfg = Debug|x64
+		{83FC71C9-D52E-4A62-B457-029B9A271C97}.Debug|x64.Build.0 = Debug|x64
+		{83FC71C9-D52E-4A62-B457-029B9A271C97}.Release|x64.ActiveCfg = Release|x64
+		{83FC71C9-D52E-4A62-B457-029B9A271C97}.Release|x64.Build.0 = Release|x64
+		{1922CFD1-7AB5-4CD4-A6A0-1314C83A9AF3}.Debug|x64.ActiveCfg = Debug|x64
+		{1922CFD1-7AB5-4CD4-A6A0-1314C83A9AF3}.Debug|x64.Build.0 = Debug|x64
+		{1922CFD1-7AB5-4CD4-A6A0-1314C83A9AF3}.Release|x64.ActiveCfg = Release|x64
+		{1922CFD1-7AB5-4CD4-A6A0-1314C83A9AF3}.Release|x64.Build.0 = Release|x64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
