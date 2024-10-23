@@ -10,10 +10,13 @@
 
 // CUDA runtime
 // CUDA utilities and system includes
+#include <assert.h>
 #include <complex>
 #include <cuda_runtime.h>
 #include <cuda_gl_interop.h>
 #include <device_launch_parameters.h>
+#include <iomanip>
+#include <iostream>
 
 #define SCREEN_X 1024
 #define SCREEN_Y 768
@@ -22,6 +25,44 @@
 
 #define CPU_MODE 1
 #define GPU_MODE 2
+
+class cuda_timer
+{
+private:
+	cudaEvent_t cstart;
+	cudaEvent_t cstop;
+
+public:
+	cuda_timer()
+	{
+		cudaEventCreate(&cstart);
+		cudaEventCreate(&cstop);
+	}
+
+	~cuda_timer()
+	{
+		cudaEventDestroy(cstop);
+		cudaEventDestroy(cstart);
+	}
+
+	void start() const
+	{
+		cudaEventRecord(cstart);
+	}
+
+	void stop() const
+	{
+		cudaEventRecord(cstop);
+		cudaEventSynchronize(cstop);
+	}
+
+	friend std::ostream& operator<<(std::ostream& os, const cuda_timer& cuda_timer)
+	{
+		float diff;
+		cudaEventElapsedTime(&diff, cuda_timer.cstart, cuda_timer.cstop);
+		return os << "CUDA time is " << std::fixed << std::setprecision(2) << diff << "ms\n";
+	}
+};
 
 GLuint imageTex;
 GLuint imageBuffer;
@@ -36,6 +77,20 @@ int timebase = 0;
 int precision = 10;
 
 float4* pixels;
+
+#define CHECK_CUDA_ERROR(err) check_cuda_error_d(err, __FILE__, __LINE__)
+
+inline void check_cuda_error_d(const cudaError err, const std::string& file, const int line)
+{
+	if (err != cudaError::cudaSuccess)
+	{
+		std::cerr << file << "(" << line << "): CUDA Runtime API error " << err << ": " << cudaGetErrorString(err) <<
+			". \n";
+		std::cin.get();
+
+		std::quick_exit(err);
+	}
+}
 
 float julia_color(const float x, const float y, const float sx, const float sy, const std::size_t p)
 {
@@ -60,8 +115,9 @@ __device__ float d_julia_color(const float x, const float y, const float sx, con
 	const float seed_i = sy;
 	for (std::size_t i = 0; i < p; i++)
 	{
-		a_r = a_r * a_r - a_i * a_i + seed_r;
-		a_i = a_r * a_i - a_i * a_r + seed_i;
+		const float temp_r = a_r * a_r - a_i * a_i + seed_r;
+		a_i = a_r * a_i + a_i * a_r + seed_i;
+		a_r = temp_r;
 		const float magnitude = sqrtf(powf(a_r, 2) + powf(a_i, 2));
 		if (powf(magnitude, 2) > 4)
 		{
@@ -71,21 +127,18 @@ __device__ float d_julia_color(const float x, const float y, const float sx, con
 	return 0;
 }
 
-__global__ void gpu_julia_color(const float sx, const float sy, const std::size_t p, const std::size_t n_x, const std::size_t n_y, const float scale, float4* pixels)
+__global__ void gpu_julia_color(const float sx, const float sy, const std::size_t p, const std::size_t n_x,
+                                const std::size_t n_y, const float scale, float4* pixels)
 {
 	const std::size_t index_x = threadIdx.x + blockIdx.x * blockDim.x;
-	const std::size_t index_y = threadIdx.x + blockIdx.y * blockDim.y;
+	const std::size_t index_y = threadIdx.y + blockIdx.y * blockDim.y;
 
 	if (index_x < n_x && index_y < n_y)
 	{
-		const float x = scale * (static_cast<float>(index_x) - static_cast<float>(n_x) / 2.0f);
-		const float y = scale * (static_cast<float>(index_y) - static_cast<float>(n_y) / 2.0f);
+		const float x = scale * (static_cast<float>(index_x) - static_cast<float>(SCREEN_X) / 2.0f);
+		const float y = scale * (static_cast<float>(index_y) - static_cast<float>(SCREEN_Y) / 2.0f);
 		const float color = d_julia_color(x, y, sx, sy, p);
-		float4* pix = pixels + index_x + n_x * index_y;
-		pix->x = color;
-		pix->y = color;
-		pix->z = color;
-		pix->w = 1.0f;
+		pixels[index_y * SCREEN_X + index_x] = make_float4(color, color, color, 1.0f);
 	}
 }
 
@@ -117,26 +170,28 @@ void example_cpu()
 			float x = (float)(scale * (j - SCREEN_X / 2));
 			float y = (float)(scale * (i - SCREEN_Y / 2));
 			float4* p = pixels + (i * SCREEN_X + j);
-			
+
 			const float color = julia_color(x, y, mx, my, precision);
 
 			p->x = color;
 			p->y = color;
 			p->z = color;
 			p->w = 1.0f;
-			
-
 		}
 }
 
 void example_gpu()
 {
-	float4 *d_pixels;
-	cudaMalloc(&d_pixels, SCREEN_X * SCREEN_Y * sizeof(float4));
+	float4* d_pixels;
+	CHECK_CUDA_ERROR(cudaMalloc(&d_pixels, SCREEN_X * SCREEN_Y * sizeof(float4)));
 
-	gpu_julia_color <<< dim3(SCREEN_X, SCREEN_Y), dim3(512, 512) >>> (mx, my, precision, SCREEN_X, SCREEN_Y, scale, d_pixels);
+	gpu_julia_color <<< dim3(SCREEN_X / 16, SCREEN_Y / 16), dim3(16, 16) >>>(
+		mx, my, precision, SCREEN_X, SCREEN_Y, scale, d_pixels);
+	cudaDeviceSynchronize();
+	CHECK_CUDA_ERROR(cudaGetLastError());
 
 	cudaMemcpy(pixels, d_pixels, SCREEN_X * SCREEN_Y * sizeof(float4), cudaMemcpyDeviceToHost);
+	cudaFree(d_pixels);
 }
 
 void calculate()
@@ -236,7 +291,7 @@ void mouseMotion(int x, int y)
 	my = -(float)(scale * (y - SCREEN_Y / 2));
 }
 
-void processNormalKeys(unsigned char key, int x, int y)
+void process_normal_keys(unsigned char key, int x, int y)
 {
 	switch (key)
 	{
@@ -250,11 +305,11 @@ void processNormalKeys(unsigned char key, int x, int y)
 		toggleMode(GPU_MODE);
 		break;
 	case '+':
-		precision++;
+		precision *= 2;
 		glutPostRedisplay();
 		break;
 	case '-':
-		precision--;
+		precision /= 2;
 		glutPostRedisplay();
 		break;
 	}
@@ -303,7 +358,7 @@ int main(int argc, char** argv)
 	glutIdleFunc(idle);
 	glutMotionFunc(mouseMotion);
 	glutMouseFunc(mouse);
-	glutKeyboardFunc(processNormalKeys);
+	glutKeyboardFunc(process_normal_keys);
 	glutSpecialFunc(processSpecialKeys);
 
 	// enter GLUT event processing cycle
