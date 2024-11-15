@@ -33,6 +33,7 @@ enum class render_mode: std::uint8_t
 constexpr std::size_t screen_x = 1024;
 constexpr std::size_t screen_y = 768;
 constexpr std::size_t fps_update = 500;
+constexpr std::size_t max_spheres = 0x400;
 constexpr auto title = "RayTracer";
 
 std::vector<sphere> spheres{};
@@ -85,6 +86,59 @@ __global__ void ray_trace_gpu(const sphere* spheres, const std::size_t size_sphe
 	}
 }
 
+__constant__ sphere const_sphere[max_spheres];
+__global__ void ray_trace_gpu_constant(const std::size_t size_sphere, const std::size_t n_x,
+                                       const std::size_t n_y, const float scale, float4* pixels)
+{
+	const std::size_t index_x = threadIdx.x + blockIdx.x * blockDim.x;
+	const std::size_t index_y = threadIdx.y + blockIdx.y * blockDim.y;
+	const std::size_t index_pixel = index_y * screen_x + index_x;
+	if (index_x < n_x && index_y < n_y && size_sphere != 0)
+	{
+		const float x = scale * (static_cast<float>(index_x) - static_cast<float>(screen_x) / 2.0f);
+		const float y = scale * (static_cast<float>(index_y) - static_cast<float>(screen_y) / 2.0f);
+		float last_d = -1;
+		pixels[index_pixel] = make_float4(0.0f, 0.0f, 0.0f, 0.0f);
+
+		for (const sphere* sphere = const_sphere; sphere != const_sphere + size_sphere; sphere++)
+		{
+			float sh;
+			const float d = sphere->hit(x, y, &sh);
+			if (d > last_d && d > 0)
+			{
+				pixels[index_pixel] = make_float4(sphere->rgb.x * sh, sphere->rgb.y * sh, sphere->rgb.z * sh, 1.0f);
+				last_d = d;
+			}
+		}
+	}
+}
+
+__global__ void ray_trace_gpu_stream(const sphere* spheres, const std::size_t size_sphere, const std::size_t n_x,
+                                       const std::size_t n_y, const float scale, float4* pixels)
+{
+	const std::size_t index_x = threadIdx.x + blockIdx.x * blockDim.x;
+	const std::size_t index_y = threadIdx.y + blockIdx.y * blockDim.y;
+	const std::size_t index_pixel = index_y * screen_x + index_x;
+	if (index_x < n_x && index_y < n_y && size_sphere != 0)
+	{
+		const float x = scale * (static_cast<float>(index_x) - static_cast<float>(screen_x) / 2.0f);
+		const float y = scale * (static_cast<float>(index_y) - static_cast<float>(screen_y) / 2.0f);
+		float last_d = -1;
+		pixels[index_pixel] = make_float4(0.0f, 0.0f, 0.0f, 0.0f);
+
+		for (const sphere* sphere = spheres; sphere != spheres + size_sphere; sphere++)
+		{
+			float sh;
+			const float d = sphere->hit(x, y, &sh);
+			if (d > last_d && d > 0)
+			{
+				pixels[index_pixel] = make_float4(sphere->rgb.x * sh, sphere->rgb.y * sh, sphere->rgb.z * sh, 1.0f);
+				last_d = d;
+			}
+		}
+	}
+}
+
 void ray_trace_cpu(const std::vector<sphere>& spheres)
 {
 	for (std::size_t index_x = 0; index_x < screen_x; index_x++)
@@ -95,7 +149,7 @@ void ray_trace_cpu(const std::vector<sphere>& spheres)
 			const float x = scale * (static_cast<float>(index_x) - static_cast<float>(screen_x) / 2.0f);
 			const float y = scale * (static_cast<float>(index_y) - static_cast<float>(screen_y) / 2.0f);
 			float last_d = -1;
-			assert(pixels.size() != 0);
+			assert(!pixels.empty());
 			pixels[index_pixel] = make_float4(0.0f, 0.0f, 0.0f, 0.0f);
 
 			for (const sphere& sphere : spheres)
@@ -170,6 +224,26 @@ void calculate_pixels_gpu()
 	CHECK_CUDA_ERROR(cudaFree(d_pixels));
 }
 
+void calculate_pixels_gpu_constant()
+{
+	float4* d_pixels;
+
+	CHECK_CUDA_ERROR(cudaMalloc(&d_pixels, pixels.size() * sizeof(float4)));
+
+	CHECK_CUDA_ERROR(
+		cudaMemcpyToSymbol(const_sphere, spheres.data(), spheres.size() * sizeof(sphere)));
+
+	ray_trace_gpu_constant <<< dim3(screen_x / 16, screen_y / 16), dim3(16, 16) >>>(
+		spheres.size(), screen_x, screen_y, scale, d_pixels);
+	cudaDeviceSynchronize();
+	CHECK_CUDA_ERROR(cudaGetLastError());
+
+	CHECK_CUDA_ERROR(
+		cudaMemcpy(pixels.data(), d_pixels, pixels.size() * sizeof(float4), cudaMemcpyDeviceToHost));
+
+	CHECK_CUDA_ERROR(cudaFree(d_pixels));
+}
+
 
 void calculate_pixels_cpu()
 {
@@ -195,6 +269,10 @@ void calculate()
 	if (render_mode == render_mode::cpu)
 	{
 		calculate_pixels_cpu();
+	}
+	else if (render_mode == render_mode::gpu_2)
+	{
+		calculate_pixels_gpu_constant();
 	}
 	else
 	{
@@ -264,6 +342,7 @@ void process_normal_keys(const unsigned char key, int, int)
 		glutPostRedisplay();
 		break;
 	case '+':
+		if (spheres.size() < max_spheres)
 		{
 			sphere add{random_float3(0.2f, 1.0f), random_float(0.2f, 0.6f), random_float3(-10.0f, 10.0f)};
 			add.xyz.z = random_float(0.0f, 50.0f);

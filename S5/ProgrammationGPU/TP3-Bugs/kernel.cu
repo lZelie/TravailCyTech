@@ -20,12 +20,17 @@ enum class render_mode: std::uint8_t
 constexpr std::size_t screen_x = 1024;
 constexpr std::size_t screen_y = 768;
 constexpr std::size_t fps_update = 500;
-constexpr auto title = "RayTracer";
+constexpr auto title = "Bugs";
 
 std::array<float4, screen_x * screen_y> pixels{};
 std::size_t frame = 0;
 std::size_t time_base = 0;
 float scale = 3e-3f;
+constexpr int range = 1;
+constexpr int survive_low = 3;
+constexpr int survive_high = 4;
+constexpr int birth_low = 3;
+constexpr int birth_high = 3;
 __device__ float ambient_light = 0.2f;
 
 auto render_mode = render_mode::cpu;
@@ -61,15 +66,139 @@ void init_gl(int argc, char* argv[])
 	glTranslatef(0.375, 0.375, 0); // Displacement trick for exact pixelization
 }
 
+__global__ void calculate_pixels_gpu_1(const float4* pixels_in_d, float4* pixels_out_d)
+{
+	const std::size_t index_x = threadIdx.x + blockIdx.x * blockDim.x;
+	const std::size_t index_y = threadIdx.y + blockIdx.y * blockDim.y;
+	const std::size_t index_pixel = index_y * screen_x + index_x;
+
+	const int min_x = static_cast<int>(index_x) - range;
+	const int min_y = static_cast<int>(index_y) - range;
+
+	int livings = 0;
+	if (pixels_in_d[index_pixel].y == 1.0f)
+	{
+		livings -= 1;
+	}
+
+	for (int square_x = min_x; square_x < min_x + (2 * range + 1); ++square_x)
+	{
+		for (int square_y = min_y; square_y < min_y + (2 * range + 1); ++square_y)
+		{
+			const int corrected_x = square_x >= 0
+				                        ? (square_x < static_cast<int>(screen_x)
+					                           ? square_x
+					                           : square_x -
+					                           static_cast<int>(screen_x))
+				                        : static_cast<int>(screen_x) + square_x;
+			const int corrected_y = square_y >= 0
+				                        ? (square_y < static_cast<int>(screen_y)
+					                           ? square_y
+					                           : square_y -
+					                           static_cast<int>(screen_y))
+				                        : static_cast<int>(screen_y) + square_y;
+
+			const std::size_t index_pixel_square = corrected_y * screen_x + corrected_x;
+
+			if (pixels_in_d[index_pixel_square].y == 1.0f)
+			{
+				livings += 1;
+			}
+		}
+	}
+
+	if (pixels_in_d[index_pixel].y == 0.0f && livings >= birth_low && livings <= birth_high)
+	{
+		pixels_out_d[index_pixel] = make_float4(0.0f, 1.0f, 0.0f, 0.0f);
+	}
+	else if (pixels_in_d[index_pixel].y == 1.0f && (livings < survive_low || livings > survive_high))
+	{
+		pixels_out_d[index_pixel] = make_float4(0.0f, 0.0f, 0.0f, 0.0f);
+	}
+}
+
 
 void calculate_pixels_gpu()
 {
+	/*static int grid = 1;
+
+	if (grid == 1)
+	{*/
+	float4 *grid1, *grid2;
+
+	cudaMalloc(&grid1, screen_x * screen_y * sizeof(float4));
+	cudaMalloc(&grid2, screen_x * screen_y * sizeof(float4));
+	cudaMemcpy(grid1, pixels.data(), screen_x * screen_y * sizeof(float4), cudaMemcpyHostToDevice);
+	// Using grid1 to grid2
+	calculate_pixels_gpu_1 <<< dim3(screen_x / 16, screen_y / 16), dim3(16, 16) >>>(grid1, grid2);
+	cudaMemcpy(pixels.data(), grid2, screen_x * screen_y * sizeof(float4), cudaMemcpyDeviceToHost);
+
+	/*grid = 2;*/
+	/*}
+	else
+	{
+		// Using grid2 to grid1
+		calculate_pixels_gpu_1 <<< dim3(screen_x / 16, screen_y / 16), dim3(16, 16) >>>(grid2, grid1);
+		cudaMemcpy(pixels.data(), grid1, screen_x * screen_y * sizeof(float4), cudaMemcpyDeviceToHost);
+
+		grid = 1;
+	}*/
 }
 
 
 void calculate_pixels_cpu()
 {
-	const int range = 5;
+	for (std::size_t index_x = 0; index_x < screen_x; ++index_x)
+	{
+		for (std::size_t index_y = 0; index_y < screen_y; ++index_y)
+		{
+			const std::size_t index_pixel = index_y * screen_x + index_x;
+
+			const int min_x = static_cast<int>(index_x) - range;
+			const int min_y = static_cast<int>(index_y) - range;
+
+			int livings = 0;
+			if (pixels[index_pixel].y == 1.0f)
+			{
+				livings -= 1;
+			}
+
+			for (int square_x = min_x; square_x < min_x + (2 * range + 1); ++square_x)
+			{
+				for (int square_y = min_y; square_y < min_y + (2 * range + 1); ++square_y)
+				{
+					const int corrected_x = square_x >= 0
+						                        ? (square_x < static_cast<int>(screen_x)
+							                           ? square_x
+							                           : square_x -
+							                           static_cast<int>(screen_x))
+						                        : static_cast<int>(screen_x) + square_x;
+					const int corrected_y = square_y >= 0
+						                        ? (square_y < static_cast<int>(screen_y)
+							                           ? square_y
+							                           : square_y -
+							                           static_cast<int>(screen_y))
+						                        : static_cast<int>(screen_y) + square_y;
+
+					const std::size_t index_pixel_square = corrected_y * screen_x + corrected_x;
+
+					if (pixels[index_pixel_square].y == 1.0f)
+					{
+						livings += 1;
+					}
+				}
+			}
+
+			if (pixels[index_pixel].y == 0.0f && livings >= birth_low && livings <= birth_high)
+			{
+				pixels[index_pixel] = make_float4(0.0f, 1.0f, 0.0f, 0.0f);
+			}
+			else if (pixels[index_pixel].y == 1.0f && (livings < survive_low || livings > survive_high))
+			{
+				pixels[index_pixel] = make_float4(0.0f, 0.0f, 0.0f, 0.0f);
+			}
+		}
+	}
 }
 
 void calculate()
@@ -146,10 +275,21 @@ void process_normal_keys(const unsigned char key, int, int)
 	}
 }
 
+void init()
+{
+	static std::random_device rng;
+	std::uniform_int_distribution<> dist(0, 1);
+	for (auto& pixel : pixels)
+	{
+		pixel.y = dist(rng);
+	}
+}
+
 
 int main(const int argc, char* argv[])
 {
 	init_gl(argc, argv);
+	init();
 
 	glutDisplayFunc(render);
 	glutIdleFunc(idle);
