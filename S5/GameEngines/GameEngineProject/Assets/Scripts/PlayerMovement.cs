@@ -6,27 +6,29 @@ using UnityEngine;
 
 public class PlayerMovement : MonoBehaviour
 {
-    [SerializeField] float moveSpeed = 5f;
-
-    private Rigidbody _rigidbody;
-
-    private void Start()
-    {
-        _rigidbody = GetComponent<Rigidbody>();
-    }
+    [SerializeField] private float moveSpeed = 5f;
+    [SerializeField] private Transform topBound;
+    [SerializeField] private Transform bottomBound;
 
     private void Update()
     {
-        var vertical = Input.GetAxis("Vertical");
-        var clampedVertical = Mathf.Clamp(vertical, -1, 1);
-        transform.Translate(0, clampedVertical * moveSpeed * Time.deltaTime, 0);
+        var verticalInput = Input.GetAxis("Vertical");
+
+        var newPosition = transform.position;
+        newPosition.y += verticalInput * moveSpeed * Time.deltaTime;
+
+        newPosition.y = Mathf.Clamp(newPosition.y,
+            bottomBound.position.y + bottomBound.localScale.y / 2 + transform.localScale.y / 2,
+            topBound.position.y - topBound.localScale.y / 2 - transform.localScale.y / 2);
+
+        transform.position = newPosition;
     }
-    
+
     private void OnCollisionEnter(Collision other)
     {
         if (!other.gameObject.CompareTag("Ball")) return;
-        var contact = other.contacts.First();
+        var contact = other.contacts[0];
         var vector = contact.point - transform.position;
-        other.rigidbody.AddForce(vector.normalized * 10, ForceMode.VelocityChange);
+        other.rigidbody.AddForce(vector.normalized * 1.5f, ForceMode.VelocityChange);
     }
 }
