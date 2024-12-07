@@ -10,13 +10,16 @@ public class LevelManager : MonoBehaviour
 {
     [SerializeField] private List<Level> levels = new();
     [SerializeField] private Transform playerTransform;
+    [SerializeField] private Transform enemyTransform;
     [SerializeField] private Transform levelsContainer;
     [SerializeField] private CoinCounter coinCounter;
     [SerializeField] private TextMeshProUGUI timeCounter;
     [SerializeField] private TextMeshProUGUI bestTimeCounter;
+    [SerializeField] private TextMeshProUGUI timeGameOver;
     [SerializeField] private UIManager uiManager;
     [SerializeField] private LevelButton levelButton;
     [SerializeField] private Transform levelButtonsContainer;
+    
 
     private Level _currentLevel;
 
@@ -72,6 +75,13 @@ public class LevelManager : MonoBehaviour
         
         playerTransform.position = level.StartPosition;
         playerTransform.gameObject.SetActive(true);
+
+        if (levelObject.EnemyStart is not null)
+        {
+            enemyTransform.position = levelObject.EnemyStart.transform.position;
+            enemyTransform.gameObject.SetActive(true);
+        }
+        
         uiManager.SetActiveMenu("IngameMenu");
     }
 
@@ -88,6 +98,21 @@ public class LevelManager : MonoBehaviour
         SetLevel(level);
     }
 
+    public void LoseLevel()
+    {
+        DestroyLevels();
+        StopCoroutine(LevelTimerCoroutine());
+        
+        var levelTimer = LevelElapsedTime;
+        Debug.Log($"Timer level: {levelTimer}s");
+        
+        uiManager.SetActiveMenu("GameOver");
+        timeGameOver.text = $"Timer level: {levelTimer:F1}s";
+        playerTransform.gameObject.SetActive(false);
+        enemyTransform.gameObject.SetActive(false);
+        RefreshLevelButtons();
+    }
+
     public void FinishLevel()
     {
         DestroyLevels();
@@ -102,6 +127,7 @@ public class LevelManager : MonoBehaviour
         }
         uiManager.SetActiveMenu("MainMenu");
         playerTransform.gameObject.SetActive(false);
+        enemyTransform.gameObject.SetActive(false);
         RefreshLevelButtons();
     }
 
