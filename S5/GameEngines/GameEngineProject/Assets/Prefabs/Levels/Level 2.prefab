@@ -158,6 +158,7 @@ MonoBehaviour:
   coins:
   - {fileID: 1975562981525792174}
   - {fileID: 7300379239745675808}
+  enemyStart: {fileID: 6443271869303897969}
 --- !u!1 &1469571237747970329
 GameObject:
   m_ObjectHideFlags: 0
@@ -400,7 +401,7 @@ SphereCollider:
   m_LayerOverridePriority: 0
   m_IsTrigger: 0
   m_ProvidesContacts: 0
-  m_Enabled: 1
+  m_Enabled: 0
   serializedVersion: 3
   m_Radius: 0.5
   m_Center: {x: 0, y: 0, z: 0}
@@ -643,7 +644,7 @@ SphereCollider:
   m_LayerOverridePriority: 0
   m_IsTrigger: 0
   m_ProvidesContacts: 0
-  m_Enabled: 1
+  m_Enabled: 0
   serializedVersion: 3
   m_Radius: 0.5
   m_Center: {x: 0, y: 0, z: 0}
@@ -780,8 +781,8 @@ Transform:
   m_GameObject: {fileID: 7942503087421383140}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: -2, y: 0.5, z: -2}
-  m_LocalScale: {x: 1, y: 1, z: 5}
+  m_LocalPosition: {x: -2, y: 0, z: -2}
+  m_LocalScale: {x: 1, y: 2, z: 5}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 6612758655838073064}
@@ -1023,8 +1024,8 @@ Transform:
   m_GameObject: {fileID: 8804169827237780530}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 2, y: 0.5, z: 2}
-  m_LocalScale: {x: 5, y: 1, z: 1}
+  m_LocalPosition: {x: 2, y: 0, z: 2}
+  m_LocalScale: {x: 5, y: 2, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 6612758655838073064}
