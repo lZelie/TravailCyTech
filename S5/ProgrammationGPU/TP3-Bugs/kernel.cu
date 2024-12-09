@@ -17,8 +17,8 @@ enum class render_mode: std::uint8_t
 	gpu,
 };
 
-constexpr std::size_t screen_x = 1536;
-constexpr std::size_t screen_y = 1152;
+constexpr std::size_t screen_x = 1600;
+constexpr std::size_t screen_y = 912;
 constexpr std::size_t fps_update = 500;
 constexpr auto title = "Bugs";
 

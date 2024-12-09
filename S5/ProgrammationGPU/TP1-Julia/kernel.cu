@@ -266,7 +266,7 @@ void init()
 	}
 }
 
-void toggleMode(int m)
+void toggle_mode(int m)
 {
 	clean();
 	mode = m;
@@ -299,10 +299,10 @@ void process_normal_keys(unsigned char key, int x, int y)
 		clean();
 		exit(0);
 	case '1':
-		toggleMode(CPU_MODE);
+		toggle_mode(CPU_MODE);
 		break;
 	case '2':
-		toggleMode(GPU_MODE);
+		toggle_mode(GPU_MODE);
 		break;
 	case '+':
 		precision *= 2;
@@ -315,7 +315,7 @@ void process_normal_keys(unsigned char key, int x, int y)
 	}
 }
 
-void processSpecialKeys(int key, int x, int y)
+void process_special_keys(int key, int x, int y)
 {
 	// other keys (F1, F2, arrows, home, etc.)
 	switch (key)
@@ -325,7 +325,7 @@ void processSpecialKeys(int key, int x, int y)
 	}
 }
 
-void initGL(int argc, char** argv)
+void init_gl(int argc, char** argv)
 {
 	// init GLUT and create window
 	glutInit(&argc, argv);
@@ -350,7 +350,7 @@ void initGL(int argc, char** argv)
 
 int main(int argc, char** argv)
 {
-	initGL(argc, argv);
+	init_gl(argc, argv);
 
 	init();
 
@@ -359,7 +359,7 @@ int main(int argc, char** argv)
 	glutMotionFunc(mouseMotion);
 	glutMouseFunc(mouse);
 	glutKeyboardFunc(process_normal_keys);
-	glutSpecialFunc(processSpecialKeys);
+	glutSpecialFunc(process_special_keys);
 
 	// enter GLUT event processing cycle
 	glutMainLoop();

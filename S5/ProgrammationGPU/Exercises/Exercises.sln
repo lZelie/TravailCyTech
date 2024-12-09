@@ -17,6 +17,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Matrixmul", "..\Matrixmul\M
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "warp", "..\warp\warp.vcxproj", "{84116A35-6632-4FDF-A7B5-D3343BDCABDC}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "TP4-Nbody", "..\TP4-Nbody\TP4-Nbody.vcxproj", "{2FC5493C-7E7E-4514-A717-1A25195AD2E2}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
@@ -51,6 +53,10 @@ Global
 		{84116A35-6632-4FDF-A7B5-D3343BDCABDC}.Debug|x64.Build.0 = Debug|x64
 		{84116A35-6632-4FDF-A7B5-D3343BDCABDC}.Release|x64.ActiveCfg = Release|x64
 		{84116A35-6632-4FDF-A7B5-D3343BDCABDC}.Release|x64.Build.0 = Release|x64
+		{2FC5493C-7E7E-4514-A717-1A25195AD2E2}.Debug|x64.ActiveCfg = Debug|x64
+		{2FC5493C-7E7E-4514-A717-1A25195AD2E2}.Debug|x64.Build.0 = Debug|x64
+		{2FC5493C-7E7E-4514-A717-1A25195AD2E2}.Release|x64.ActiveCfg = Release|x64
+		{2FC5493C-7E7E-4514-A717-1A25195AD2E2}.Release|x64.Build.0 = Release|x64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
