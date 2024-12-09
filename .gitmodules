@@ -13,3 +13,6 @@
 [submodule "S5/IHM/GameUserAPI"]
 	path = S5/IHM/GameUserAPI
 	url = git@github.com:Les-Nuages-Blancs/GameUserAPI.git
+[submodule "S5/IHM/Paint"]
+	path = S5/IHM/Paint
+	url = git@github.com:ChristopheCai/Paint.git
