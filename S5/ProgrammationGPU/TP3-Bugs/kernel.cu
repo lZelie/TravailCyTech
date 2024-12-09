@@ -17,23 +17,21 @@ enum class render_mode: std::uint8_t
 	gpu,
 };
 
-constexpr std::size_t screen_x = 1024;
-constexpr std::size_t screen_y = 768;
+constexpr std::size_t screen_x = 1536;
+constexpr std::size_t screen_y = 1152;
 constexpr std::size_t fps_update = 500;
 constexpr auto title = "Bugs";
 
 std::array<float4, screen_x * screen_y> pixels{};
 std::size_t frame = 0;
 std::size_t time_base = 0;
-float scale = 3e-3f;
-constexpr int range = 1;
-constexpr int survive_low = 3;
-constexpr int survive_high = 4;
-constexpr int birth_low = 3;
-constexpr int birth_high = 3;
-__device__ float ambient_light = 0.2f;
+constexpr int range = 4;
+constexpr int survive_low = 40;
+constexpr int survive_high = 80;
+constexpr int birth_low = 41;
+constexpr int birth_high = 81;
 
-auto render_mode = render_mode::cpu;
+auto render_mode = render_mode::gpu;
 
 inline void check_cuda_error_d(const cudaError err, const std::string& file, const int line)
 {
@@ -75,34 +73,20 @@ __global__ void calculate_pixels_gpu_1(const float4* pixels_in_d, float4* pixels
 	const int min_x = static_cast<int>(index_x) - range;
 	const int min_y = static_cast<int>(index_y) - range;
 
-	int livings = 0;
-	if (pixels_in_d[index_pixel].y == 1.0f)
-	{
-		livings -= 1;
-	}
+	int livings = pixels_in_d[index_pixel].y == 1.0f ? -1 : 0;
 
 	for (int square_x = min_x; square_x < min_x + (2 * range + 1); ++square_x)
 	{
 		for (int square_y = min_y; square_y < min_y + (2 * range + 1); ++square_y)
 		{
-			const int corrected_x = square_x >= 0
-				                        ? (square_x < static_cast<int>(screen_x)
-					                           ? square_x
-					                           : square_x -
-					                           static_cast<int>(screen_x))
-				                        : static_cast<int>(screen_x) + square_x;
-			const int corrected_y = square_y >= 0
-				                        ? (square_y < static_cast<int>(screen_y)
-					                           ? square_y
-					                           : square_y -
-					                           static_cast<int>(screen_y))
-				                        : static_cast<int>(screen_y) + square_y;
+			const int corrected_x = (square_x + screen_x) % screen_x;
+			const int corrected_y = (square_y + screen_y) % screen_y;
 
 			const std::size_t index_pixel_square = corrected_y * screen_x + corrected_x;
 
 			if (pixels_in_d[index_pixel_square].y == 1.0f)
 			{
-				livings += 1;
+				livings++;
 			}
 		}
 	}
@@ -115,90 +99,79 @@ __global__ void calculate_pixels_gpu_1(const float4* pixels_in_d, float4* pixels
 	{
 		pixels_out_d[index_pixel] = make_float4(0.0f, 0.0f, 0.0f, 0.0f);
 	}
+	else
+	{
+		pixels_out_d[index_pixel] = pixels_in_d[index_pixel];
+	}
 }
 
+float4 *grid1, *grid2;
+int grid = 1;
 
 void calculate_pixels_gpu()
 {
-	/*static int grid = 1;
-
 	if (grid == 1)
-	{*/
-	float4 *grid1, *grid2;
-
-	cudaMalloc(&grid1, screen_x * screen_y * sizeof(float4));
-	cudaMalloc(&grid2, screen_x * screen_y * sizeof(float4));
-	cudaMemcpy(grid1, pixels.data(), screen_x * screen_y * sizeof(float4), cudaMemcpyHostToDevice);
-	// Using grid1 to grid2
-	calculate_pixels_gpu_1 <<< dim3(screen_x / 16, screen_y / 16), dim3(16, 16) >>>(grid1, grid2);
-	cudaMemcpy(pixels.data(), grid2, screen_x * screen_y * sizeof(float4), cudaMemcpyDeviceToHost);
-
-	/*grid = 2;*/
-	/*}
+	{
+		// Using grid1 to grid2
+		calculate_pixels_gpu_1 <<< dim3(screen_x / 16, screen_y / 16), dim3(16, 16) >>>(grid1, grid2);
+		CHECK_CUDA_ERROR(cudaGetLastError());
+		CHECK_CUDA_ERROR(
+			cudaMemcpy(pixels.data(), grid2, screen_x * screen_y * sizeof(float4), cudaMemcpyDeviceToHost));
+		grid = 2;
+	}
 	else
 	{
 		// Using grid2 to grid1
 		calculate_pixels_gpu_1 <<< dim3(screen_x / 16, screen_y / 16), dim3(16, 16) >>>(grid2, grid1);
-		cudaMemcpy(pixels.data(), grid1, screen_x * screen_y * sizeof(float4), cudaMemcpyDeviceToHost);
-
+		CHECK_CUDA_ERROR(cudaGetLastError());
+		CHECK_CUDA_ERROR(
+			cudaMemcpy(pixels.data(), grid1, screen_x * screen_y * sizeof(float4), cudaMemcpyDeviceToHost));
 		grid = 1;
-	}*/
+	}
 }
 
 
 void calculate_pixels_cpu()
 {
+	std::vector<float4> new_pixels(screen_x * screen_y);
+	std::copy(pixels.begin(), pixels.end(), new_pixels.begin());
 	for (std::size_t index_x = 0; index_x < screen_x; ++index_x)
 	{
 		for (std::size_t index_y = 0; index_y < screen_y; ++index_y)
 		{
 			const std::size_t index_pixel = index_y * screen_x + index_x;
-
 			const int min_x = static_cast<int>(index_x) - range;
 			const int min_y = static_cast<int>(index_y) - range;
 
-			int livings = 0;
-			if (pixels[index_pixel].y == 1.0f)
-			{
-				livings -= 1;
-			}
+			int livings = pixels[index_pixel].y == 1.0f ? -1 : 0;
 
 			for (int square_x = min_x; square_x < min_x + (2 * range + 1); ++square_x)
 			{
 				for (int square_y = min_y; square_y < min_y + (2 * range + 1); ++square_y)
 				{
-					const int corrected_x = square_x >= 0
-						                        ? (square_x < static_cast<int>(screen_x)
-							                           ? square_x
-							                           : square_x -
-							                           static_cast<int>(screen_x))
-						                        : static_cast<int>(screen_x) + square_x;
-					const int corrected_y = square_y >= 0
-						                        ? (square_y < static_cast<int>(screen_y)
-							                           ? square_y
-							                           : square_y -
-							                           static_cast<int>(screen_y))
-						                        : static_cast<int>(screen_y) + square_y;
+					const int corrected_x = (square_x + screen_x) % screen_x;
+					const int corrected_y = (square_y + screen_y) % screen_y;
 
 					const std::size_t index_pixel_square = corrected_y * screen_x + corrected_x;
 
 					if (pixels[index_pixel_square].y == 1.0f)
 					{
-						livings += 1;
+						livings++;
 					}
 				}
 			}
 
 			if (pixels[index_pixel].y == 0.0f && livings >= birth_low && livings <= birth_high)
 			{
-				pixels[index_pixel] = make_float4(0.0f, 1.0f, 0.0f, 0.0f);
+				new_pixels[index_pixel] = make_float4(0.0f, 1.0f, 0.0f, 0.0f);
 			}
 			else if (pixels[index_pixel].y == 1.0f && (livings < survive_low || livings > survive_high))
 			{
-				pixels[index_pixel] = make_float4(0.0f, 0.0f, 0.0f, 0.0f);
+				new_pixels[index_pixel] = make_float4(0.0f, 0.0f, 0.0f, 0.0f);
 			}
 		}
 	}
+	std::copy(new_pixels.begin(), new_pixels.end(), pixels.begin());
 }
 
 void calculate()
@@ -283,6 +256,10 @@ void init()
 	{
 		pixel.y = dist(rng);
 	}
+
+	CHECK_CUDA_ERROR(cudaMalloc(&grid1, screen_x * screen_y * sizeof(float4)));
+	CHECK_CUDA_ERROR(cudaMalloc(&grid2, screen_x * screen_y * sizeof(float4)));
+	CHECK_CUDA_ERROR(cudaMemcpy(grid1, pixels.data(), screen_x * screen_y * sizeof(float4), cudaMemcpyHostToDevice));
 }
 
 
