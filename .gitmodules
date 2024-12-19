@@ -16,3 +16,6 @@
 [submodule "S5/IHM/Paint"]
 	path = S5/IHM/Paint
 	url = git@github.com:ChristopheCai/Paint.git
+[submodule "S5/GameEngines/Survivor"]
+	path = S5/GameEngines/Survivor
+	url = https://github.com/Les-Nuages-Blancs/Survivor.git
