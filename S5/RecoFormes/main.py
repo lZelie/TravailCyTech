@@ -1,6 +1,9 @@
 import imageio
 import matplotlib.pyplot as plt
 import numpy as np
+import pandas
+from sklearn.model_selection import train_test_split
+import keras
 
 
 def median_filter(image: np.ndarray) -> np.ndarray:
@@ -97,4 +100,69 @@ def wiki():
     plt.show()
 
 
-wiki()
+def encode_class(c: str) -> int:
+    if c == "male":
+        return 1
+    elif c == "female":
+        return 0
+    else:
+        return -1
+
+
+def voice():
+    data = pandas.read_csv('datasets/voice.csv')
+
+    nb_entries = len(data.values)
+    nb_variables = len(data.columns)
+    classes = data["label"].unique().tolist()
+    nb_classes = len(classes)
+
+    data_x = data.values[:, :nb_variables - 1]
+    data_x = data_x.astype(np.float64)
+    data_y = data.values[:, nb_variables - 1]
+    encoded_y = np.array([encode_class(y) for y in data_y])
+
+    x_train, x_test, y_train, y_test = train_test_split(data_x, encoded_y, test_size=0.3, random_state=100)
+
+    # Create the neural network
+    # Blank sequential neural network
+    model = keras.models.Sequential()
+
+    # Add layers
+    model.add(keras.layers.Dense(10, input_dim=nb_variables - 1, activation="sigmoid"))
+    model.add(keras.layers.Dense(1, activation="sigmoid"))
+
+    model.summary()
+
+    # Train the neural network
+    # Compile
+    model.compile(loss="binary_crossentropy", optimizer="adam", metrics=["accuracy"])
+
+    # fit
+    model.fit(x_train, y_train, epochs=100, batch_size=10)
+
+    # Evaluate
+    # apply to test
+            # -> prediction vs data
+            # -> confusion matrix
+# Predict the classes for the test set
+y_pred = model.predict(x_test)
+y_pred_classes = np.round(y_pred).astype(int).flatten()
+
+# Calculate the confusion matrix
+conf_matrix = confusion_matrix(y_test, y_pred_classes)
+
+conf_matrix
+recall_m = conf_matrix[0, 0] / (conf_matrix[0, 0] + conf_matrix[0, 1])
+recall_f = conf_matrix[1, 1] / (conf_matrix[1, 0] + conf_matrix[1, 1])
+
+precision_m = conf_matrix[0, 0] / (conf_matrix[0, 0] + conf_matrix[1, 0])
+precision_f = conf_matrix[1, 1] / (conf_matrix[0, 1] + conf_matrix[1, 1])
+
+print(f"Recall female: {recall_f}")
+print(f"Recall male: {recall_m}")
+print(f"Precision female: {precision_f}")
+print(f"Precision male: {precision_m}")
+            # -> Accuracy
+score = model.evaluate(x_test, y_test)
+print(score)
