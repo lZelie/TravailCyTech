@@ -7,10 +7,6 @@ set(CMAKE_CXX_STANDARD 23)
 find_package(OpenGL REQUIRED)
 include_directories( ${OPENGL_INCLUDE_DIRS} )
 
-set( GLFW_BUILD_DOCS OFF CACHE BOOL  "GLFW lib only" )
-set( GLFW_INSTALL OFF CACHE BOOL  "GLFW lib only" )
-set( GLAD_GL "" )
-
 #GLFW
 find_package(glfw QUIET)
 if (NOT glfw_found)
@@ -27,5 +23,31 @@ if (NOT glm_FOUND)
     FetchContent_MakeAvailable(GLM)
 endif ()
 
-add_executable(Raytracing1 main.cpp)
-target_link_libraries(Raytracing1 ${OPENGL_gl_LIBRARY} glfw glm::glm-header-only)
+# GLEW
+find_package(GLEW QUIET)
+if (NOT GLEW_FOUND)
+    include(FetchContent)
+    SET(BUILD_UTILS OFF)
+    FetchContent_Declare(
+            GLEW
+            URL            https://sourceforge.net/projects/glew/files/glew/2.1.0/glew-2.1.0.zip
+            SOURCE_DIR     ${CMAKE_SOURCE_DIR}/external/glew
+    )
+    FetchContent_GetProperties(glew)
+    if(NOT glew_POPULATED)
+        FetchContent_MakeAvailable(glew)
+        add_subdirectory(${CMAKE_SOURCE_DIR}/external/glew/build/cmake)
+    endif()
+endif (NOT GLEW_FOUND)
+
+add_executable(Raytracing1 main.cpp
+        shader_class.cpp
+        shader_class.h
+        vao.h
+        vao.cpp
+        vbo.cpp
+        vbo.h
+        camera.cpp
+        camera.h)
+target_include_directories(Raytracing1 PRIVATE "${CMAKE_SOURCE_DIR}/include" external/glew/include)
+target_link_libraries(Raytracing1 ${OPENGL_gl_LIBRARY} glfw glm::glm-header-only glew_s)
