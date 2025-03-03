@@ -5,6 +5,11 @@ set(CMAKE_CXX_STANDARD 23)
 
 #OpenGL
 find_package(OpenGL REQUIRED)
+include_directories( ${OPENGL_INCLUDE_DIRS} )
+
+set( GLFW_BUILD_DOCS OFF CACHE BOOL  "GLFW lib only" )
+set( GLFW_INSTALL OFF CACHE BOOL  "GLFW lib only" )
+set( GLAD_GL "" )
 
 #GLFW
 find_package(glfw QUIET)
