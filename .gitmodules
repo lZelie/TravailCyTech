@@ -19,3 +19,6 @@
 [submodule "S5/GameEngines/Survivor"]
 	path = S5/GameEngines/Survivor
 	url = https://github.com/Les-Nuages-Blancs/Survivor.git
+[submodule "S5/vr/TamagotchiAR"]
+	path = S5/vr/TamagotchiAR
+	url = git@github.com:axelvuillaume/TamagotchiAR.git
