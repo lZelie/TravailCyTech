@@ -109,6 +109,7 @@ void Renderer::updateShaderUniforms() const
     glUniform3fv(ShaderLocations::LIGHT_COLOR, 1, &LIGHT_COLOR[0]);
     glUniform3fv(ShaderLocations::LIGHT_AMBIENT, 1, &LIGHT_AMBIENT[0]);
     glUniform1i(ShaderLocations::LIGHT_TYPE, light_type);
+    glUniform1i(ShaderLocations::SAMPLE_RATE, SAMPLE_RATE);
 }
 
 Renderer::Renderer() :

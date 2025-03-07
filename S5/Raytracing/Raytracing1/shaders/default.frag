@@ -12,6 +12,7 @@ layout (location = 800) uniform vec4 light;
 layout (location = 801) uniform vec3 light_color;
 layout (location = 802) uniform vec3 ambient_light;
 layout (location = 803) uniform int lighting_type;
+layout (location = 804) uniform int sample_rate;
 
 // Material properties (could be extended to have different materials per object)
 struct Material {
@@ -50,11 +51,44 @@ vec3 blinn_brdf(vec3 light_pos, vec3 normal, vec3 view_dir, Material material);
 
 Material get_material(int object_type, int object_id);
 
-bool is_in_shadow(vec3 position, vec3 light_dir, float light_distance);
+float carculate_shadows(vec3 position, vec3 light_dir, float light_distance);
 
 void main() {
-    uv = compute_uv();
-    fColor = vec4(raycast(uv), 1.0f);
+    vec3 color = vec3(0.0);
+    int samples = max(1, sample_rate);
+    
+    float step_size = 1.0 / samples;
+    
+    for (int y = 0; y < samples; y++) {
+        for (int x = 0; x < samples; x++) {
+            vec2 offset = vec2(
+                (float(x) + 0.5) * step_size - 0.5,
+                (float(y) + 0.5) * step_size - 0.5
+            ) / vec2(view[0], view[1]);
+            
+            vec2 sample_coord = gl_FragCoord.xy + offset * vec2(view[0], view[1]);
+            vec2 sample_uv = (sample_coord / vec2(view[0], view[1]) - 0.5) * 2.0;
+            
+            float aspect = view[0] / view[1];
+            if (aspect >= 1.0) {
+                sample_uv.x *= aspect;
+            } else {
+                sample_uv.y /= aspect;
+            }
+
+            // Accumulate color from this sample
+            color += raycast(sample_uv);
+        }
+    }
+
+    // Average the accumulated color values
+    color /= float(samples * samples);
+
+    // Output final color
+    fColor = vec4(color, 1.0f);
+//    
+//    uv = compute_uv();
+//    fColor = vec4(raycast(uv), 1.0f);
 }
 
 void compute_primary_ray(in vec2 uv, out vec3 ray_pos, out vec3 ray_dir){
@@ -300,7 +334,7 @@ vec3 raycast(vec2 uv){
 }
 
 // Determine if a point is in shadow
-bool is_in_shadow(vec3 position, vec3 light_dir, float light_distance) {
+float carculate_shadows(vec3 position, vec3 light_dir, float light_distance) {
 //    return false;
     vec3 shadow_intersec;
     vec3 shadow_normal;
@@ -313,7 +347,7 @@ bool is_in_shadow(vec3 position, vec3 light_dir, float light_distance) {
     float shadow_dist = compute_nearest_intersection(offset_pos, light_dir, shadow_intersec, shadow_normal, shadow_obj_id, shadow_obj_type);
 
     // If there's an intersection and it's closer than the light, the point is in shadow
-    return (shadow_dist > 0.0 && shadow_dist < light_distance);
+    return (shadow_dist > 0.0 && shadow_dist < light_distance) ? distance(position, shadow_intersec) / distance(position, light.xyz) : 1.0;
 }
 
 vec3 calculate_lighting(vec3 position, vec3 normal, vec3 view_dir, Material material){
@@ -335,7 +369,7 @@ vec3 calculate_lighting(vec3 position, vec3 normal, vec3 view_dir, Material mate
     // Attenuation (light falloff with distance)
     float attenuation = 1.0 / (1.0 + 0.09 * light_distance + 0.032 * light_distance * light_distance);
 
-    int sl = is_in_shadow(position, light_dir, light_distance) ? 0 : 1;
+    float sl = carculate_shadows(position, light_dir, light_distance);
     vec3 result = ambient + sl * (diffuse + specular * light_intensity); 
     result *= light_color;
     return result;

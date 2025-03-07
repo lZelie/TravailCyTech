@@ -15,18 +15,35 @@
 constexpr int INITIAL_WIDTH = 640;
 constexpr int INITIAL_HEIGHT = 480;
 constexpr float CAMERA_FOV = 45.0f;
-constexpr char WINDOW_TITLE[] = "Hello World!";
+constexpr char WINDOW_TITLE[] = "RTX on";
+constexpr int SAMPLE_RATE = 16;
 
 // Scene data
 constexpr std::array<glm::vec4, 256> SPHERES = {
     glm::vec4{0.0f, 0.0f, -5.0f, 1.0f}, 
-    {1.0f, 1.0f, 1.0f, 0.1f}, 
+    {14.0f, 1.0f, -16.0f, 0.1f}, 
     {15.0f, 10.0f, 15.0f, 10.0f}
 };
 
 constexpr std::array<glm::vec3, 256> PLANES = {
-    glm::vec3{0.0f, -1.0f, 0.0f}, 
-    glm::vec3{0.0f, 1.0f, 0.0f}
+    // Bottom face: normal pointing down (-Y)
+    glm::vec3{0.0f, -1.0f, 0.0f},
+    glm::vec3{0.0f, 1.0f, 0.0f},
+    // Top face: normal pointing up (+Y)
+    glm::vec3{0.0f, 30.0f, 0.0f},
+    glm::vec3{0.0f, -1.0f, 0.0f},
+    // Left face: normal pointing left (-X)
+    glm::vec3{-30.0f, 0.0f, 0.0f},
+    glm::vec3{1.0f, 0.0f, 0.0f},
+    // Right face: normal pointing right (+X)
+    glm::vec3{30.0f, 0.0f, 0.0f},
+    glm::vec3{-1.0f, 0.0f, 0.0f},
+    // Back face: normal pointing backward (-Z)
+    glm::vec3{0.0f, 0.0f, -30.0f},
+    glm::vec3{0.0f, 0.0f, 1.0f},
+    // Front face: normal pointing forward (+Z)
+    glm::vec3{0.0f, 0.0f, 30.0f},
+    glm::vec3{0.0f, 0.0f, -1.0f},
 };
 
 constexpr std::array<glm::vec3, 256> TRIANGLES = {
@@ -38,14 +55,14 @@ constexpr std::array<glm::vec3, 256> TRIANGLES = {
 };
 
 // Lighting
-constexpr glm::vec4 LIGHT_POSITION{100.0f, 100.0f, -100.0f, 0.9f};
+constexpr glm::vec4 LIGHT_POSITION{15.0f, 10.0f, -15.0f, 0.9f};
 constexpr glm::vec3 LIGHT_COLOR{1.0f, 1.0f, 0.99f};
 constexpr glm::vec3 LIGHT_AMBIENT{0.1f, 0.1f, 0.1f};
 
 // Shader uniform locations
 struct ShaderLocations {
     static constexpr int NUM_OBJECTS = 3;
-    static constexpr int NUM_PLANES = 1;
+    static constexpr int NUM_PLANES = 6;
     static constexpr int NUM_TRIANGLES = 4;
     
     static constexpr int VIEW_DATA = 3;
@@ -56,6 +73,7 @@ struct ShaderLocations {
     static constexpr int LIGHT_COLOR = 801;
     static constexpr int LIGHT_AMBIENT = 802;
     static constexpr int LIGHT_TYPE = 803;
+    static constexpr int SAMPLE_RATE = 804;
 };
 
 
