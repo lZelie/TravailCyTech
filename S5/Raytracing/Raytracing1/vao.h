@@ -22,8 +22,6 @@ namespace gl3 {
         void unbind();
 
         ~vao();
-
-        void linkAttrib(vbo *VBO, GLuint layout, GLuint numComponent, GLenum type, GLsizeiptr stride, void *offset);
     };
 }
 

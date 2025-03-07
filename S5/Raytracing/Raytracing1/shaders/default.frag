@@ -318,7 +318,7 @@ bool is_in_shadow(vec3 position, vec3 light_dir, float light_distance) {
 
 vec3 calculate_lighting(vec3 position, vec3 normal, vec3 view_dir, Material material){
     // Ambient
-    vec3 result = material.ambient * ambient_light;
+    vec3 ambient = material.ambient * ambient_light;
     
     vec3 light_pos = light.xyz;
     float light_intensity = light.w;
@@ -328,7 +328,6 @@ vec3 calculate_lighting(vec3 position, vec3 normal, vec3 view_dir, Material mate
     // Diffuse
     float diff = max(dot(normal, light_dir), 0.0);
     vec3 diffuse = diff * material.diffuse;
-    result += diffuse;
 
     // Specular
     vec3 specular = lighting_type == 0 ? phong_brdf(light_dir, normal, view_dir, material): blinn_brdf(light_dir, normal, view_dir, material);
@@ -336,7 +335,8 @@ vec3 calculate_lighting(vec3 position, vec3 normal, vec3 view_dir, Material mate
     // Attenuation (light falloff with distance)
     float attenuation = 1.0 / (1.0 + 0.09 * light_distance + 0.032 * light_distance * light_distance);
 
-    result += specular * light_intensity * attenuation; 
+    int sl = is_in_shadow(position, light_dir, light_distance) ? 0 : 1;
+    vec3 result = ambient + sl * (diffuse + specular * light_intensity); 
     result *= light_color;
     return result;
 }
