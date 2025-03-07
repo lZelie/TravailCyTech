@@ -8,6 +8,20 @@ layout (location = 19) uniform vec4 spheres[256];
 layout (location = 276) uniform vec3 planes[256];
 layout (location = 534) uniform vec3 meshes[256];
 
+layout (location = 800) uniform vec4 light;
+layout (location = 801) uniform vec3 light_color;
+layout (location = 802) uniform vec3 ambient_light;
+layout (location = 803) uniform int lighting_type;
+
+// Material properties (could be extended to have different materials per object)
+struct Material {
+    vec3 ambient;
+    vec3 diffuse;
+    vec3 specular;
+    float shininess;
+};
+
+
 vec2 uv;// the UV coordinates of this pixel on the canvas
 
 out vec4 fColor;// final color
@@ -22,11 +36,21 @@ float ray_triangle(vec3 ray_pos, vec3 ray_dir, vec3 p0, vec3 p1, vec3 p2, out ve
 
 float ray_plane(vec3 ray_pos, vec3 ray_dir, vec3 plane_pos, vec3 plane_normal, out vec3 intersec_pt, out vec3 normal);// test ray–plane intersection , if intersect : return distance, point and normal
 
-float compute_nearest_intersection(vec3 ray_pos, vec3 ray_dir, out vec3 intersec_i, out vec3 normal_i);// find nearest intersection in the scene, , if intersect: return distance, point and normal
+float compute_nearest_intersection(vec3 ray_pos, vec3 ray_dir, out vec3 intersec_i, out vec3 normal_i, out int object_id, out int object_type);// find nearest intersection in the scene, , if intersect: return distance, point and normal
 
 vec2 compute_uv();
 
 vec3 raycast(vec2 uv);// compute primary ray, computeIntersection, shade, return color
+
+vec3 calculate_lighting(vec3 position, vec3 normal, vec3 view_dir, Material material);
+
+vec3 phong_brdf(vec3 light_pos, vec3 normal, vec3 view_dir, Material material);
+
+vec3 blinn_brdf(vec3 light_pos, vec3 normal, vec3 view_dir, Material material);
+
+Material get_material(int object_type, int object_id);
+
+bool is_in_shadow(vec3 position, vec3 light_dir, float light_distance);
 
 void main() {
     uv = compute_uv();
@@ -157,7 +181,7 @@ float ray_plane(vec3 ray_pos, vec3 ray_dir, vec3 plane_pos, vec3 plane_normal, o
     return t;
 }
 
-float compute_nearest_intersection(vec3 ray_pos, vec3 ray_dir, out vec3 intersec_i, out vec3 normal_i){
+float compute_nearest_intersection(vec3 ray_pos, vec3 ray_dir, out vec3 intersec_i, out vec3 normal_i, out int object_id, out int object_type){
     float dist = 1e10f;
     bool hit = false;
     
@@ -172,6 +196,8 @@ float compute_nearest_intersection(vec3 ray_pos, vec3 ray_dir, out vec3 intersec
             intersec_i = intersec_point_sphere;
             normal_i = normal_sphere;
             dist = sphere_dist;
+            object_id = i;
+            object_type = 0;
             hit = true;
         }
     }
@@ -188,6 +214,8 @@ float compute_nearest_intersection(vec3 ray_pos, vec3 ray_dir, out vec3 intersec
             intersec_i = intersec_point_plane;
             normal_i = normal_plane;
             dist = plane_dist;
+            object_id = i;
+            object_type = 1;
             hit = true;
         } 
     }
@@ -204,6 +232,8 @@ float compute_nearest_intersection(vec3 ray_pos, vec3 ray_dir, out vec3 intersec
             intersec_i = intersec_point_triangle;
             normal_i = normal_triangle;
             dist = triangle_dist;
+            object_id = i;
+            object_type = 2;
             hit = true;
         }
     }
@@ -252,13 +282,120 @@ vec3 raycast(vec2 uv){
 
     vec3 intersec_point;
     vec3 normal;
-    float dist = compute_nearest_intersection(ray_pos, ray_dir, intersec_point, normal);
+    int object_id, object_type;
+    float dist = compute_nearest_intersection(ray_pos, ray_dir, intersec_point, normal, object_id, object_type);
 
     if (dist > 0.0) {
+        Material material = get_material(object_type, object_id);
+        
+        vec3 view_dir = normalize(ray_pos - intersec_point);
+        
         // Remap normal from [-1,1] to [0,1] range for visualization
-        return 0.5 * (normal + 1.0);
+//        return 0.5 * (normal + 1.0);
+        return calculate_lighting(intersec_point, normal, view_dir, material);
     } else {
         // If no intersection, return background color
         return vec3(0.2, 0.3, 0.4);
     }
+}
+
+// Determine if a point is in shadow
+bool is_in_shadow(vec3 position, vec3 light_dir, float light_distance) {
+//    return false;
+    vec3 shadow_intersec;
+    vec3 shadow_normal;
+    int shadow_obj_id, shadow_obj_type;
+
+    // Offset the ray origin slightly to avoid self-intersection
+    vec3 offset_pos = position + light_dir * 0.001;
+
+    // Check if there's any intersection between the point and the light
+    float shadow_dist = compute_nearest_intersection(offset_pos, light_dir, shadow_intersec, shadow_normal, shadow_obj_id, shadow_obj_type);
+
+    // If there's an intersection and it's closer than the light, the point is in shadow
+    return (shadow_dist > 0.0 && shadow_dist < light_distance);
+}
+
+vec3 calculate_lighting(vec3 position, vec3 normal, vec3 view_dir, Material material){
+    // Ambient
+    vec3 result = material.ambient * ambient_light;
+    
+    vec3 light_pos = light.xyz;
+    float light_intensity = light.w;
+
+    vec3 light_dir = normalize(light_pos - position);
+    float light_distance = distance(light_pos, position);
+    // Diffuse
+    float diff = max(dot(normal, light_dir), 0.0);
+    vec3 diffuse = diff * material.diffuse;
+    result += diffuse;
+
+    // Specular
+    vec3 specular = lighting_type == 0 ? phong_brdf(light_dir, normal, view_dir, material): blinn_brdf(light_dir, normal, view_dir, material);
+
+    // Attenuation (light falloff with distance)
+    float attenuation = 1.0 / (1.0 + 0.09 * light_distance + 0.032 * light_distance * light_distance);
+
+    result += specular * light_intensity * attenuation; 
+    result *= light_color;
+    return result;
+}
+
+vec3 phong_brdf(vec3 light_dir, vec3 normal, vec3 view_dir, Material material){
+    vec3 reflect_dir = reflect(-light_dir, normal);
+    float spec = pow(max(dot(view_dir, reflect_dir), 0.0), material.shininess);
+    vec3 specular = spec * material.specular;
+    return specular;
+}
+
+vec3 blinn_brdf(vec3 light_dir, vec3 normal, vec3 view_dir, Material material){
+    vec3 halfway = normalize(light_dir + view_dir);
+    float spec = pow(max(dot(halfway, normal), 0.0), material.shininess);
+    vec3 specular = spec * material.specular;
+    return specular;
+}
+
+Material get_material(int object_type, int object_id) {
+    Material mat;
+
+    // Different material properties based on object type
+    if (object_type == 0) { // Sphere
+        // Vary material based on sphere ID for visual interest
+        int material_variant = object_id % 3;
+
+        if (material_variant == 0) {
+            // Plastic-like material
+            mat.ambient = vec3(0.1, 0.1, 0.1);
+            mat.diffuse = vec3(0.8, 0.2, 0.2); // Red
+            mat.specular = vec3(1.0, 1.0, 1.0);
+            mat.shininess = 32.0;
+        } else if (material_variant == 1) {
+            // Light
+            mat.ambient = ambient_light;
+            mat.diffuse = light_color;
+            mat.specular = vec3(0.9, 0.9, 0.9);
+            mat.shininess = 128.0;
+        } else {
+            // Glass-like material
+            mat.ambient = vec3(0.1, 0.1, 0.1);
+            mat.diffuse = vec3(0.2, 0.2, 0.8); // Blue
+            mat.specular = vec3(1.0, 1.0, 1.0);
+            mat.shininess = 256.0;
+        }
+    }
+    else if (object_type == 1) { // Plane
+        // Checkerboard pattern for planes
+        mat.ambient = vec3(0.1, 0.1, 0.1);
+        mat.diffuse = vec3(0.9, 0.9, 0.9); // White
+        mat.specular = vec3(0.2, 0.2, 0.2);
+        mat.shininess = 4.0;
+    }
+    else { // Triangle/Mesh
+        mat.ambient = vec3(0.1, 0.1, 0.1);
+        mat.diffuse = vec3(0.8, 0.8, 0.2); // Yellow
+        mat.specular = vec3(0.5, 0.5, 0.5);
+        mat.shininess = 16.0;
+    }
+
+    return mat;
 }
