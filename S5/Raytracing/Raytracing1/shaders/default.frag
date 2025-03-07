@@ -4,9 +4,9 @@ layout (location = 0) uniform int nbSpheres;
 layout (location = 1) uniform int nbPlanes;
 layout (location = 2) uniform int nbMeshTriangles;
 layout (location = 3) uniform float view[16];
-layout (location = 19) uniform float spheres[256];
-layout (location = 276) uniform float planes[256];
-layout (location = 534) uniform float meshes[256];
+layout (location = 19) uniform vec4 spheres[256];
+layout (location = 276) uniform vec3 planes[256];
+layout (location = 534) uniform vec3 meshes[256];
 
 vec2 uv;// the UV coordinates of this pixel on the canvas
 
@@ -162,9 +162,9 @@ float compute_nearest_intersection(vec3 ray_pos, vec3 ray_dir, out vec3 intersec
     bool hit = false;
     
     // Test intersection with sphere
-    for (int i = 0; i < nbSpheres && i < 64; i++){
-        vec3 sphere_pos = vec3(spheres[i * 4], spheres[i * 4 + 1], spheres[i * 4 + 2]);
-        float sphere_radius = spheres[i * 4 + 3];
+    for (int i = 0; i < nbSpheres && i < 256; i++){
+        vec3 sphere_pos = spheres[i].xyz;
+        float sphere_radius = spheres[i].w;
         vec3 intersec_point_sphere;
         vec3 normal_sphere;
         float sphere_dist = ray_sphere(ray_pos, ray_dir, sphere_pos, sphere_radius, intersec_point_sphere, normal_sphere);
@@ -178,9 +178,9 @@ float compute_nearest_intersection(vec3 ray_pos, vec3 ray_dir, out vec3 intersec
     
     
     // Test intersection with a ground plane
-    for (int i = 0; i < nbPlanes && i < 42; i++){ 
-        vec3 plane_pos = vec3(planes[i * 6], planes[i * 6 + 1], planes[i * 6 + 2]);
-        vec3 plane_normal = vec3(planes[i * 6 + 3], planes[i * 6 + 4], planes[i * 6 + 5]);
+    for (int i = 0; i < nbPlanes && i < 128; i++){ 
+        vec3 plane_pos = planes[i * 2];
+        vec3 plane_normal = planes[i * 2 + 1];
         vec3 intersec_point_plane;
         vec3 normal_plane;
         float plane_dist = ray_plane(ray_pos, ray_dir, plane_pos, plane_normal, intersec_point_plane, normal_plane);
@@ -193,10 +193,10 @@ float compute_nearest_intersection(vec3 ray_pos, vec3 ray_dir, out vec3 intersec
     }
     
     // Test intersection with a triangle
-    for (int i = 0; i < nbMeshTriangles && i < 28; i++){
-        vec3 p0 = vec3(meshes[i * 9], meshes[i * 9 + 1], meshes[i * 9 + 2]);
-        vec3 p1 = vec3(meshes[i * 9 + 3], meshes[i * 9 + 4], meshes[i * 9 + 5]);
-        vec3 p2 = vec3(meshes[i * 9 + 6], meshes[i * 9 + 7], meshes[i * 9 + 8]);
+    for (int i = 0; i < nbMeshTriangles && i < 85; i++){
+        vec3 p0 = meshes[i * 3];
+        vec3 p1 = meshes[i * 3 + 1];
+        vec3 p2 = meshes[i * 3 + 2];
         vec3 intersec_point_triangle;
         vec3 normal_triangle;
         float triangle_dist = ray_triangle(ray_pos, ray_dir, p0, p1, p2, intersec_point_triangle, normal_triangle);

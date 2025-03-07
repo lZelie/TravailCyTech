@@ -37,7 +37,6 @@ int main()
         {
             glfwSetWindowShouldClose(window, GLFW_TRUE);
         }
-        // camera.MoveKey(window, key, scancode, action, mods);
     });
 
     if (const GLenum err = glewInit(); err != GLEW_OK)
@@ -62,14 +61,14 @@ int main()
 
     glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
 
-    constexpr std::array<GLfloat, 256> spheres = {0.0f, 0.0f, -5.0f, 1.0f};
-    constexpr std::array<GLfloat, 256> planes = {0.0f, -1.0f, 0.0f, 0.0f, 1.0f, 0.0f};
-    constexpr std::array<GLfloat, 256> triangles = {
-        3.0f, 0.0f, 3.0f, 5.0f, 0.0f, 3.0f, 4.0f, 2.0f, 4.0f,
-        5.0f, 0.0f, 3.0f, 5.0f, 0.0f, 5.0f, 4.0f, 2.0f, 4.0f,
-        5.0f, 0.0f, 5.0f, 3.0f, 0.0f, 5.0f, 4.0f, 2.0f, 4.0f,
-        3.0f, 0.0f, 5.0f, 3.0f, 0.0f, 3.0f, 4.0f, 2.0f, 4.0f,
-        };
+    constexpr std::array<glm::vec4, 256> spheres = {glm::vec4{0.0f, 0.0f, -5.0f, 1.0f}};
+    constexpr std::array<glm::vec3, 256> planes = {glm::vec3{0.0f, -1.0f, 0.0f}, glm::vec3{0.0f, 1.0f, 0.0f}};
+    constexpr std::array<glm::vec3, 256> triangles = {
+        glm::vec3{3.0f, 0.0f, 3.0f}, glm::vec3{5.0f, 0.0f, 3.0f}, glm::vec3{4.0f, 2.0f, 4.0f},
+        glm::vec3{5.0f, 0.0f, 3.0f}, glm::vec3{5.0f, 0.0f, 5.0f}, glm::vec3{4.0f, 2.0f, 4.0f},
+        glm::vec3{5.0f, 0.0f, 5.0f}, glm::vec3{3.0f, 0.0f, 5.0f}, glm::vec3{4.0f, 2.0f, 4.0f},
+        glm::vec3{3.0f, 0.0f, 5.0f}, glm::vec3{3.0f, 0.0f, 3.0f}, glm::vec3{4.0f, 2.0f, 4.0f},
+    };
     while (!glfwWindowShouldClose(window))
     {
         glViewport(0, 0, window_size[0], window_size[1]);
@@ -84,9 +83,9 @@ int main()
         glUniform1i(1, 1);
         glUniform1i(2, 4);
         glUniform1fv(3, 16, view.data());
-        glUniform1fv(19, 256, spheres.data());
-        glUniform1fv(276, 256, planes.data());
-        glUniform1fv(534, 256, triangles.data());
+        glUniform4fv(19, 256, &spheres[0][0]);
+        glUniform3fv(276, 256, &planes[0][0]);
+        glUniform3fv(534, 256, &triangles[0][0]);
         program_default.activate();
         vao_quad.bind();
         glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
