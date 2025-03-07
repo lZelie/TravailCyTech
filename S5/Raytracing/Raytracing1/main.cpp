@@ -62,7 +62,14 @@ int main()
 
     glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
 
-    const std::vector sphere = {0.0f, 0.0f, -5.0f, 1.0f};
+    constexpr std::array<GLfloat, 256> spheres = {0.0f, 0.0f, -5.0f, 1.0f};
+    constexpr std::array<GLfloat, 256> planes = {0.0f, -1.0f, 0.0f, 0.0f, 1.0f, 0.0f};
+    constexpr std::array<GLfloat, 256> triangles = {
+        3.0f, 0.0f, 3.0f, 5.0f, 0.0f, 3.0f, 4.0f, 2.0f, 4.0f,
+        5.0f, 0.0f, 3.0f, 5.0f, 0.0f, 5.0f, 4.0f, 2.0f, 4.0f,
+        5.0f, 0.0f, 5.0f, 3.0f, 0.0f, 5.0f, 4.0f, 2.0f, 4.0f,
+        3.0f, 0.0f, 5.0f, 3.0f, 0.0f, 3.0f, 4.0f, 2.0f, 4.0f,
+        };
     while (!glfwWindowShouldClose(window))
     {
         glViewport(0, 0, window_size[0], window_size[1]);
@@ -73,8 +80,13 @@ int main()
             camera.Orientation[0] + camera.Position[0], camera.Orientation[1] + camera.Position[1], camera.Orientation[2] + camera.Position[2], camera_fov, 0.0f, 0.0f, 0.0f, 0.0f,
             0.0f, 0.0f, 0.0f
         };
-        glUniform1fv(0, 16, view.data());
-        glUniform1fv(16, 4, sphere.data());
+        glUniform1i(0, 1);
+        glUniform1i(1, 1);
+        glUniform1i(2, 4);
+        glUniform1fv(3, 16, view.data());
+        glUniform1fv(19, 256, spheres.data());
+        glUniform1fv(276, 256, planes.data());
+        glUniform1fv(534, 256, triangles.data());
         program_default.activate();
         vao_quad.bind();
         glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);

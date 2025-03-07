@@ -4,9 +4,9 @@ layout (location = 0) uniform int nbSpheres;
 layout (location = 1) uniform int nbPlanes;
 layout (location = 2) uniform int nbMeshTriangles;
 layout (location = 3) uniform float view[16];
-layout (location = 4) uniform float spheres[256];
-layout (location = 5) uniform float planes[256];
-layout (location = 6) uniform float meshes[256];
+layout (location = 19) uniform float spheres[256];
+layout (location = 276) uniform float planes[256];
+layout (location = 534) uniform float meshes[256];
 
 vec2 uv;// the UV coordinates of this pixel on the canvas
 
@@ -158,53 +158,58 @@ float ray_plane(vec3 ray_pos, vec3 ray_dir, vec3 plane_pos, vec3 plane_normal, o
 }
 
 float compute_nearest_intersection(vec3 ray_pos, vec3 ray_dir, out vec3 intersec_i, out vec3 normal_i){
-    /** TODO
     float dist = 1e10f;
     bool hit = false;
     
     // Test intersection with sphere
-    vec3 sphere_pos = vec3(spheres[0], spheres[1], spheres[2]);
-    float sphere_radius = spheres[3];
-    vec3 intersec_point_sphere;
-    vec3 normal_sphere;
-    float sphere_dist = ray_sphere(ray_pos, ray_dir, sphere_pos, sphere_radius, intersec_point_sphere, normal_sphere);
-    if (sphere_dist > 0.0 && sphere_dist < dist) {
-        intersec_i = intersec_point_sphere;
-        normal_i = normal_sphere;
-        dist = sphere_dist;
-        hit = true;
+    for (int i = 0; i < nbSpheres && i < 64; i++){
+        vec3 sphere_pos = vec3(spheres[i * 4], spheres[i * 4 + 1], spheres[i * 4 + 2]);
+        float sphere_radius = spheres[i * 4 + 3];
+        vec3 intersec_point_sphere;
+        vec3 normal_sphere;
+        float sphere_dist = ray_sphere(ray_pos, ray_dir, sphere_pos, sphere_radius, intersec_point_sphere, normal_sphere);
+        if (sphere_dist > 0.0 && sphere_dist < dist) {
+            intersec_i = intersec_point_sphere;
+            normal_i = normal_sphere;
+            dist = sphere_dist;
+            hit = true;
+        }
     }
     
+    
     // Test intersection with a ground plane
-    vec3 plane_pos = vec3(0.0, -2.0, 0.0);
-    vec3 plane_normal = vec3(0.0, 1.0, 0.0);
-    vec3 intersec_point_plane;
-    vec3 normal_plane;
-    float plane_dist = ray_plane(ray_pos, ray_dir, plane_pos, plane_normal, intersec_point_plane, normal_plane);
-    if (plane_dist > 0.0 && plane_dist < dist) {
-        intersec_i = intersec_point_plane;
-        normal_i = normal_plane;
-        dist = plane_dist;
-        hit = true;
+    for (int i = 0; i < nbPlanes && i < 42; i++){ 
+        vec3 plane_pos = vec3(planes[i * 6], planes[i * 6 + 1], planes[i * 6 + 2]);
+        vec3 plane_normal = vec3(planes[i * 6 + 3], planes[i * 6 + 4], planes[i * 6 + 5]);
+        vec3 intersec_point_plane;
+        vec3 normal_plane;
+        float plane_dist = ray_plane(ray_pos, ray_dir, plane_pos, plane_normal, intersec_point_plane, normal_plane);
+        if (plane_dist > 0.0 && plane_dist < dist) {
+            intersec_i = intersec_point_plane;
+            normal_i = normal_plane;
+            dist = plane_dist;
+            hit = true;
+        } 
     }
     
     // Test intersection with a triangle
-    vec3 p0 = vec3(-3.0, 0.0, -5.0);
-    vec3 p1 = vec3(0.0, 3.0, -5.0);
-    vec3 p2 = vec3(3.0, 0.0, -5.0);
-    vec3 intersec_point_triangle;
-    vec3 normal_triangle;
-    float triangle_dist = ray_triangle(ray_pos, ray_dir, p0, p1, p2, intersec_point_triangle, normal_triangle);
-    if (triangle_dist > 0.0 && triangle_dist < dist) {
-        intersec_i = intersec_point_triangle;
-        normal_i = normal_triangle;
-        dist = triangle_dist;
-        hit = true;
+    for (int i = 0; i < nbMeshTriangles && i < 28; i++){
+        vec3 p0 = vec3(meshes[i * 9], meshes[i * 9 + 1], meshes[i * 9 + 2]);
+        vec3 p1 = vec3(meshes[i * 9 + 3], meshes[i * 9 + 4], meshes[i * 9 + 5]);
+        vec3 p2 = vec3(meshes[i * 9 + 6], meshes[i * 9 + 7], meshes[i * 9 + 8]);
+        vec3 intersec_point_triangle;
+        vec3 normal_triangle;
+        float triangle_dist = ray_triangle(ray_pos, ray_dir, p0, p1, p2, intersec_point_triangle, normal_triangle);
+        if (triangle_dist > 0.0 && triangle_dist < dist) {
+            intersec_i = intersec_point_triangle;
+            normal_i = normal_triangle;
+            dist = triangle_dist;
+            hit = true;
+        }
     }
     
     if (!hit) return -1.0;
     return dist;
-    */
 }
 
 vec2 get_uv_plane_size() {
