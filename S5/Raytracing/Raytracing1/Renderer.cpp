@@ -5,6 +5,7 @@
 #include "Renderer.h"
 
 #include <iostream>
+#include <sstream>
 
 void Renderer::initWindow()
 {
@@ -17,7 +18,8 @@ void Renderer::initWindow()
     glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
 
     // Create window
-    window = glfwCreateWindow(static_cast<int>(windowSize[0]), static_cast<int>(windowSize[1]), WINDOW_TITLE, nullptr, nullptr);
+    window = glfwCreateWindow(static_cast<int>(windowSize[0]), static_cast<int>(windowSize[1]), WINDOW_TITLE, nullptr,
+                              nullptr);
     glfwMakeContextCurrent(window);
 
     // Set callbacks
@@ -153,9 +155,26 @@ void Renderer::renderFrame()
 
     // Process camera inputs
     camera.Inputs(window);
+
+    updateFps();
+    std::stringstream ss;
+    ss << WINDOW_TITLE << ": " << currentFPS;
+    glfwSetWindowTitle(window, ss.str().c_str());
 }
 
 bool Renderer::shouldClose() const
 {
     return glfwWindowShouldClose(window);
+}
+
+void Renderer::updateFps()
+{
+    frame_acc++;
+    const double timeCurr = glfwGetTime();
+    if (const double elapsedTime = timeCurr - prev_fps_update; elapsedTime > FPS_UPDATE_DELAY)
+    {
+        currentFPS = frame_acc / elapsedTime;
+        frame_acc = 0;
+        prev_fps_update = timeCurr;
+    }
 }

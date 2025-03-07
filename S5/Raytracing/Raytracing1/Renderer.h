@@ -16,7 +16,8 @@ constexpr int INITIAL_WIDTH = 640;
 constexpr int INITIAL_HEIGHT = 480;
 constexpr float CAMERA_FOV = 45.0f;
 constexpr char WINDOW_TITLE[] = "RTX on";
-constexpr int SAMPLE_RATE = 16;
+constexpr int SAMPLE_RATE = 4;
+constexpr int FPS_UPDATE_DELAY = 1;
 
 // Scene data
 constexpr std::array<glm::vec4, 256> SPHERES = {
@@ -87,7 +88,11 @@ private:
     std::unique_ptr<gl3::shader_class> shaderProgram;
     std::unique_ptr<gl3::vao> quadVAO;
     std::unique_ptr<gl3::vbo> quadVBO;
-
+    unsigned frame_acc = 0;
+    double prev_fps_update = 0;
+    double currentFPS = 0;
+    void updateFps();
+    
     // Initialize GLFW and create window
     void initWindow();
 
