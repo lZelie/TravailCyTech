@@ -16,19 +16,26 @@ constexpr int INITIAL_WIDTH = 640;
 constexpr int INITIAL_HEIGHT = 480;
 constexpr float CAMERA_FOV = 45.0f;
 constexpr char WINDOW_TITLE[] = "RTX on";
-constexpr int SAMPLE_RATE = 4;
+constexpr int SAMPLE_RATE = 1;
 constexpr int FPS_UPDATE_DELAY = 1;
 
 // Scene data
 constexpr std::array<glm::vec4, 256> SPHERES = {
-    glm::vec4{0.0f, 0.0f, -5.0f, 1.0f}, 
+    glm::vec4{5.0f, 0.0f, -10.0f, 1.0f}, 
     {14.0f, 1.0f, -16.0f, 0.1f}, 
     {15.0f, 10.0f, 15.0f, 10.0f}
 };
 
+constexpr std::array<glm::vec4, 4> CSG = {
+    glm::vec4{-1.0f, 2.0f, 0.0f, 1.5f}, 
+    {1.0f, 2.0f, 0.0f, 1.5f}, 
+    {0.0f, 2.7f, -0.3f, 0.8f},
+    {0.0f, 2.8f, 0.3f, 0.8f},
+};
+
 constexpr std::array<glm::vec3, 256> PLANES = {
     // Bottom face: normal pointing down (-Y)
-    glm::vec3{0.0f, -1.0f, 0.0f},
+    glm::vec3{0.0f, -30.0f, 0.0f},
     glm::vec3{0.0f, 1.0f, 0.0f},
     // Top face: normal pointing up (+Y)
     glm::vec3{0.0f, 30.0f, 0.0f},
@@ -75,6 +82,7 @@ struct ShaderLocations {
     static constexpr int LIGHT_AMBIENT = 802;
     static constexpr int LIGHT_TYPE = 803;
     static constexpr int SAMPLE_RATE = 804;
+    static constexpr int CSG_SPHERES = 805;
 };
 
 

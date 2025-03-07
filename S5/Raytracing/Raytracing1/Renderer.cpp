@@ -105,6 +105,7 @@ void Renderer::updateShaderUniforms() const
     glUniform4fv(ShaderLocations::SPHERES_DATA, static_cast<int>(SPHERES.size()), &SPHERES[0][0]);
     glUniform3fv(ShaderLocations::PLANES_DATA, static_cast<int>(PLANES.size()), &PLANES[0][0]);
     glUniform3fv(ShaderLocations::TRIANGLES_DATA, static_cast<int>(TRIANGLES.size()), &TRIANGLES[0][0]);
+    glUniform4fv(ShaderLocations::CSG_SPHERES, static_cast<int>(CSG.size()), &CSG[0][0]);
 
     // Set lighting parameters
     glUniform4fv(ShaderLocations::LIGHT_POSITION, 1, &LIGHT_POSITION[0]);
