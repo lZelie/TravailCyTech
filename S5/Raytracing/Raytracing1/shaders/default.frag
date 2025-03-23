@@ -534,15 +534,45 @@ Roth unionCSG(Roth roth1, Roth roth2) {
     int i = 0, j = 0;
 
     // Merge hits from both roths, keeping them ordered by distance
+    int inside_count = 0;
     while (i < roth1.nb_hits && j < roth2.nb_hits && result.nb_hits < 8) {
         if (roth1.hits[i].distance < roth2.hits[j].distance) {
-            result.hits[result.nb_hits] = roth1.hits[i];
+            if (i % 2 != 0){
+                if (inside_count == 1){
+                    result.hits[result.nb_hits] = roth1.hits[i];
+                    result.nb_hits++;
+                    
+                }
+                inside_count--;
+            }
+            else{
+                if (inside_count == 0){
+                    result.hits[result.nb_hits] = roth1.hits[i];
+                    result.nb_hits++;
+                    
+                }
+                inside_count++;
+            }
             i++;
         } else {
-            result.hits[result.nb_hits] = roth2.hits[j];
+            if (j % 2 != 0){
+                if (inside_count == 1){
+                    result.hits[result.nb_hits] = roth2.hits[j];
+                    result.nb_hits++;
+                    
+                }
+                inside_count--;
+            }
+            else{
+                if (inside_count == 0){
+                    result.hits[result.nb_hits] = roth2.hits[j];
+                    result.nb_hits++;
+                    
+                }
+                inside_count++;
+            }
             j++;
         }
-        result.nb_hits++;
     }
 
     // Add remaining hits from roth1
@@ -567,41 +597,41 @@ Roth intersectionCSG(Roth roth1, Roth roth2, vec3 ray_dir) {
     Roth result;
     result.nb_hits = 0;
 
-    int count1 = 0, count2 = 0;
-
-    // Merge sorted intersection points and count overlaps
     int i = 0, j = 0;
-    while (i < roth1.nb_hits && j < roth2.nb_hits && result.nb_hits < 8) {
-        if (roth1.hits[i].distance < roth2.hits[j].distance) {
-            // Process an entry/exit point from roth1
-            if (count1 == 0 && count2 > 0) {
-                // We're entering roth1 while already inside roth2, add an entry point
-                result.hits[result.nb_hits] = roth1.hits[i];
-                result.nb_hits++;
-            } else if (count1 > 0 && count2 > 0) {
-                // We're exiting roth1 while inside roth2, add an exit point
-                result.hits[result.nb_hits] = roth1.hits[i];
-                result.nb_hits++;
-            }
+    int inside1 = 0, inside2 = 0;
 
-            // Update count1 based on whether this is an entry or exit point
-            count1 += (dot(roth1.hits[i].surface_normal, ray_dir) < 0.0) ? 1 : -1;
+    // Process both roths in order of increasing distance
+    while (i < roth1.nb_hits && j < roth2.nb_hits && result.nb_hits < 8) {
+        Hit current_hit;
+        bool fromFirst = false;
+
+        // Determine which hit to process next
+        if (roth1.hits[i].distance < roth2.hits[j].distance) {
+            current_hit = roth1.hits[i];
+            fromFirst = true;
             i++;
         } else {
-            // Process an entry/exit point from roth2
-            if (count2 == 0 && count1 > 0) {
-                // We're entering roth2 while already inside roth1, add an entry point
-                result.hits[result.nb_hits] = roth2.hits[j];
-                result.nb_hits++;
-            } else if (count2 > 0 && count1 > 0) {
-                // We're exiting roth2 while inside roth1, add an exit point
-                result.hits[result.nb_hits] = roth2.hits[j];
-                result.nb_hits++;
-            }
-
-            // Update count2 based on whether this is an entry or exit point
-            count2 += (dot(roth2.hits[j].surface_normal, ray_dir) < 0.0) ? 1 : -1;
+            current_hit = roth2.hits[j];
+            fromFirst = false;
             j++;
+        }
+
+        // Update inside state
+        if (fromFirst) {
+            inside1 = 1 - inside1; // Toggle between 0 and 1
+        } else {
+            inside2 = 1 - inside2; // Toggle between 0 and 1
+        }
+
+        // For intersection operation: add hit point when entering or leaving the intersection volume
+        if ((inside1 != 0 && inside2 == 1 && !fromFirst) || (inside1 == 1 && inside2 != 0 && fromFirst)) {
+            // Entering intersection - add hit
+            result.hits[result.nb_hits] = current_hit;
+            result.nb_hits++;
+        } else if ((inside1 != 0 && inside2 == 0 && !fromFirst) || (inside1 == 0 && inside2 != 0 && fromFirst)) {
+            // Leaving intersection - add hit 
+            result.hits[result.nb_hits] = current_hit;
+            result.nb_hits++;
         }
     }
 
@@ -609,14 +639,30 @@ Roth intersectionCSG(Roth roth1, Roth roth2, vec3 ray_dir) {
 }
 
 // Complement operation: Inverts an object, turning inside to outside
-Roth complementCSG(Roth roth1) {
+Roth complementCSG(Roth roth) {
     Roth result;
-    result.nb_hits = roth1.nb_hits;
 
-    // Reverse the order of hits and invert the normals
-    for (int i = 0; i < roth1.nb_hits; i++) {
-        result.hits[i] = roth1.hits[roth1.nb_hits - 1 - i];
-        result.hits[i].surface_normal = -result.hits[i].surface_normal;
+    // For empty Roth, complement is a special case
+    if (roth.nb_hits == 0) {
+        // Create a "universe" hit at infinity
+        result.nb_hits = 2;
+        result.hits[0].distance = 0.0;
+        result.hits[0].surface_normal = vec3(0.0, 0.0, 0.0);
+        result.hits[0].surface_material_index = 0;
+
+        result.hits[1].distance = 1.0e30; // Very far away
+        result.hits[1].surface_normal = vec3(0.0, 0.0, 0.0);
+        result.hits[1].surface_material_index = 0;
+        return result;
+    }
+
+    result.nb_hits = roth.nb_hits;
+
+    // Swap entry and exit points by reversing the array
+    for (int i = 0; i < roth.nb_hits; i++) {
+        result.hits[i] = roth.hits[roth.nb_hits - 1 - i];
+        // Invert normal for all hit points
+//        result.hits[i].surface_normal = -result.hits[i].surface_normal;
     }
 
     return result;
@@ -624,7 +670,8 @@ Roth complementCSG(Roth roth1) {
 
 // Difference operation: Subtracts the second object from the first
 Roth differenceCSG(Roth roth1, Roth roth2, vec3 ray_dir) {
-    return intersectionCSG(roth1, complementCSG(roth2), ray_dir);
+    Roth complement = complementCSG(roth2);
+    return intersectionCSG(roth1, complement, ray_dir);
 }
 
 // Main CSG ray function that performs (Sphere1 ∩ Sphere2) + Sphere3) – Sphere4
@@ -653,21 +700,14 @@ float rayCSG(vec3 ray_pos, vec3 ray_dir, out vec3 intersect_point, out vec3 norm
     Roth intersection_result = intersectionCSG(roth1, roth2, ray_dir);   // Sphere1 ∩ Sphere2
     Roth union_result = unionCSG(intersection_result, roth3);   // (Sphere1 ∩ Sphere2) + Sphere3
     Roth final_result = differenceCSG(union_result, roth4, ray_dir);     // ((Sphere1 ∩ Sphere2) + Sphere3) - Sphere4
-    final_result = union_result;
     
     // 3. Find closest hit point in the final result
     if (final_result.nb_hits > 0) {
-        // Find first entry point (where normal faces toward the viewer)
-        for (int i = 0; i < final_result.nb_hits; i++) {
-            if (dot(final_result.hits[i].surface_normal, ray_dir) < 0.0) {
-                // This is an entry point
-                intersect_point = ray_pos + final_result.hits[i].distance * ray_dir;
-                normal = final_result.hits[i].surface_normal;
-                object_id = final_result.hits[i].surface_material_index;
-                object_type = 3; // Special type for CSG objects
-                return final_result.hits[i].distance;
-            }
-        }
+        intersect_point = ray_pos + final_result.hits[0].distance * ray_dir;
+        normal = final_result.hits[0].surface_normal;
+        object_id = final_result.hits[0].surface_material_index;
+        object_type = 3; // Special type for CSG objects
+        return final_result.hits[0].distance;
     }
 
     return -1.0; // No intersection
