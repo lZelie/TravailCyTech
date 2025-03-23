@@ -31,7 +31,7 @@ struct Hit {
 
 struct Roth {
     int nb_hits;
-    Hit hits[8]; // Max 8 hits points
+    Hit hits[8];// Max 8 hits points
 };
 
 vec2 uv;// the UV coordinates of this pixel on the canvas
@@ -74,19 +74,19 @@ float rayCSG(vec3 ray_pos, vec3 ray_dir, out vec3 intersect_point, out vec3 norm
 void main() {
     vec3 color = vec3(0.0);
     int samples = max(1, sample_rate);
-    
+
     float step_size = 1.0 / samples;
-    
+
     for (int y = 0; y < samples; y++) {
         for (int x = 0; x < samples; x++) {
             vec2 offset = vec2(
-                (float(x) + 0.5) * step_size - 0.5,
-                (float(y) + 0.5) * step_size - 0.5
+            (float(x) + 0.5) * step_size - 0.5,
+            (float(y) + 0.5) * step_size - 0.5
             ) / vec2(view[0], view[1]);
-            
+
             vec2 sample_coord = gl_FragCoord.xy + offset * vec2(view[0], view[1]);
             vec2 sample_uv = (sample_coord / vec2(view[0], view[1]) - 0.5) * 2.0;
-            
+
             float aspect = view[0] / view[1];
             if (aspect >= 1.0) {
                 sample_uv.x *= aspect;
@@ -104,9 +104,9 @@ void main() {
 
     // Output final color
     fColor = vec4(color, 1.0f);
-//    
-//    uv = compute_uv();
-//    fColor = vec4(raycast(uv), 1.0f);
+    //    
+    //    uv = compute_uv();
+    //    fColor = vec4(raycast(uv), 1.0f);
 }
 
 void compute_primary_ray(in vec2 uv, out vec3 ray_pos, out vec3 ray_dir){
@@ -179,7 +179,7 @@ float ray_triangle(vec3 ray_pos, vec3 ray_dir, vec3 p0, vec3 p1, vec3 p2, out ve
     // Check if ray and triangle are parallel
     float ndotray = dot(normal, ray_dir);
     if (abs(ndotray) < 0.000001)
-    return -1.0; // They are parallel, no intersection
+    return -1.0;// They are parallel, no intersection
 
     // Calculate distance from ray origin to triangle plane
     float d = dot(normal, p0);
@@ -213,7 +213,7 @@ float ray_plane(vec3 ray_pos, vec3 ray_dir, vec3 plane_pos, vec3 plane_normal, o
     // Check if ray and plane are parallel
     float denom = dot(plane_normal, ray_dir);
     if (abs(denom) < 0.000001) {
-        return -1.0; // No intersection, ray is parallel to plane
+        return -1.0;// No intersection, ray is parallel to plane
     }
 
     // Calculate distance to intersection point
@@ -236,7 +236,7 @@ float ray_plane(vec3 ray_pos, vec3 ray_dir, vec3 plane_pos, vec3 plane_normal, o
 float compute_nearest_intersection(vec3 ray_pos, vec3 ray_dir, out vec3 intersec_i, out vec3 normal_i, out int object_id, out int object_type){
     float dist = 1e10f;
     bool hit = false;
-    
+
     // Test intersection with sphere
     for (int i = 0; i < nbSpheres && i < 256; i++){
         vec3 sphere_pos = spheres[i].xyz;
@@ -253,10 +253,10 @@ float compute_nearest_intersection(vec3 ray_pos, vec3 ray_dir, out vec3 intersec
             hit = true;
         }
     }
-    
-    
+
+
     // Test intersection with a ground plane
-    for (int i = 0; i < nbPlanes && i < 128; i++){ 
+    for (int i = 0; i < nbPlanes && i < 128; i++){
         vec3 plane_pos = planes[i * 2];
         vec3 plane_normal = planes[i * 2 + 1];
         vec3 intersec_point_plane;
@@ -269,9 +269,9 @@ float compute_nearest_intersection(vec3 ray_pos, vec3 ray_dir, out vec3 intersec
             object_id = i;
             object_type = 1;
             hit = true;
-        } 
+        }
     }
-    
+
     // Test intersection with a triangle
     for (int i = 0; i < nbMeshTriangles && i < 85; i++){
         vec3 p0 = meshes[i * 3];
@@ -289,7 +289,20 @@ float compute_nearest_intersection(vec3 ray_pos, vec3 ray_dir, out vec3 intersec
             hit = true;
         }
     }
-    
+
+    vec3 csg_intersect_point;
+    vec3 csg_normal;
+    int csg_object_id, csg_object_type;
+    float csg_dist = rayCSG(ray_pos, ray_dir, csg_intersect_point, csg_normal, csg_object_id, csg_object_type);
+
+    if ((csg_dist > 0.0) && (dist < 0.0 || csg_dist < dist)){
+        intersec_i = csg_intersect_point;
+        normal_i = csg_normal;
+        object_id = csg_object_id;
+        object_type = csg_object_type;
+        dist = csg_dist;
+    }
+
     if (!hit) return -1.0;
     return dist;
 }
@@ -332,26 +345,13 @@ vec3 raycast(vec2 uv){
     vec3 ray_dir;
     compute_primary_ray(uv, ray_pos, ray_dir);
 
-    // First try CSG intersection
-    vec3 csg_intersect_point;
-    vec3 csg_normal;
-    int csg_object_id, csg_object_type;
-    float csg_dist = rayCSG(ray_pos, ray_dir, csg_intersect_point, csg_normal, csg_object_id, csg_object_type);
-
     // Then try regular scene intersection
     vec3 scene_intersect_point;
     vec3 scene_normal;
     int scene_object_id, scene_object_type;
     float scene_dist = compute_nearest_intersection(ray_pos, ray_dir, scene_intersect_point, scene_normal, scene_object_id, scene_object_type);
 
-    // Choose the closest intersection
-    bool use_csg = (csg_dist > 0.0) && (scene_dist < 0.0 || csg_dist < scene_dist);
-
-    if (use_csg) {
-        Material material = get_material(csg_object_type, csg_object_id);
-        vec3 view_dir = normalize(ray_pos - csg_intersect_point);
-        return calculate_lighting(csg_intersect_point, csg_normal, view_dir, material);
-    } else if (scene_dist > 0.0) {
+    if (scene_dist > 0.0) {
         Material material = get_material(scene_object_type, scene_object_id);
         vec3 view_dir = normalize(ray_pos - scene_intersect_point);
         return calculate_lighting(scene_intersect_point, scene_normal, view_dir, material);
@@ -363,7 +363,7 @@ vec3 raycast(vec2 uv){
 
 // Determine if a point is in shadow
 float calculate_shadows(vec3 position, vec3 light_dir, float light_distance) {
-//    return false;
+    //    return false;
     vec3 shadow_intersec;
     vec3 shadow_normal;
     int shadow_obj_id, shadow_obj_type;
@@ -381,7 +381,7 @@ float calculate_shadows(vec3 position, vec3 light_dir, float light_distance) {
 vec3 calculate_lighting(vec3 position, vec3 normal, vec3 view_dir, Material material){
     // Ambient
     vec3 ambient = material.ambient * ambient_light;
-    
+
     vec3 light_pos = light.xyz;
     float light_intensity = light.w;
 
@@ -398,7 +398,7 @@ vec3 calculate_lighting(vec3 position, vec3 normal, vec3 view_dir, Material mate
     float attenuation = 1.0 / (1.0 + 0.09 * light_distance + 0.032 * light_distance * light_distance);
 
     float sl = calculate_shadows(position, light_dir, light_distance);
-    vec3 result = ambient + sl * (diffuse + specular * light_intensity); 
+    vec3 result = ambient + sl * (diffuse + specular * light_intensity);
     result *= light_color;
     return result;
 }
@@ -428,7 +428,7 @@ Material get_material(int object_type, int object_id) {
         if (material_variant == 0) {
             // Plastic-like material
             mat.ambient = vec3(0.1, 0.1, 0.1);
-            mat.diffuse = vec3(0.8, 0.2, 0.2); // Red
+            mat.diffuse = vec3(0.8, 0.2, 0.2);// Red
             mat.specular = vec3(1.0, 1.0, 1.0);
             mat.shininess = 32.0;
         } else if (material_variant == 1) {
@@ -440,7 +440,7 @@ Material get_material(int object_type, int object_id) {
         } else {
             // Glass-like material
             mat.ambient = vec3(0.1, 0.1, 0.1);
-            mat.diffuse = vec3(0.2, 0.2, 0.8); // Blue
+            mat.diffuse = vec3(0.2, 0.2, 0.8);// Blue
             mat.specular = vec3(1.0, 1.0, 1.0);
             mat.shininess = 256.0;
         }
@@ -448,13 +448,13 @@ Material get_material(int object_type, int object_id) {
     else if (object_type == 1) { // Plane
         // Checkerboard pattern for planes
         mat.ambient = vec3(0.1, 0.1, 0.1);
-        mat.diffuse = vec3(0.9, 0.9, 0.9); // White
+        mat.diffuse = vec3(0.9, 0.9, 0.9);// White
         mat.specular = vec3(0.2, 0.2, 0.2);
         mat.shininess = 4.0;
     }
     else if (object_type == 2){ // Triangle/Mesh
         mat.ambient = vec3(0.1, 0.1, 0.1);
-        mat.diffuse = vec3(0.8, 0.8, 0.2); // Yellow
+        mat.diffuse = vec3(0.8, 0.8, 0.2);// Yellow
         mat.specular = vec3(0.5, 0.5, 0.5);
         mat.shininess = 16.0;
     }
@@ -464,17 +464,17 @@ Material get_material(int object_type, int object_id) {
         mat.shininess = 32.0;
         switch (object_id) {
             case 0:
-                mat.diffuse = vec3(0.8, 0.2, 0.2); // Red
-                break;
+            mat.diffuse = vec3(0.8, 0.2, 0.2);// Red
+            break;
             case 1:
-                mat.diffuse = vec3(0.8, 0.2, 0.2); // Red
-                break;
+            mat.diffuse = vec3(0.8, 0.2, 0.2);// Red
+            break;
             case 2:
-                mat.diffuse = vec3(0.2, 0.2, 0.8); // Blue
-                break;
+            mat.diffuse = vec3(0.2, 0.2, 0.8);// Blue
+            break;
             case 3:
-                mat.diffuse = vec3(0.2, 0.8, 0.2); // Green
-                break;
+            mat.diffuse = vec3(0.2, 0.8, 0.2);// Green
+            break;
         }
     }
 
@@ -484,44 +484,40 @@ Material get_material(int object_type, int object_id) {
 Roth ray_sphere_roth(vec3 ray_pos, vec3 ray_dir, vec3 sphere_pos, float sphere_radius, int material_index) {
     Roth result;
     result.nb_hits = 0;
-    
+
     vec3 oc = ray_pos - sphere_pos;
-    
+
     float a = dot(ray_dir, ray_dir);
     float b = 2.0 * dot(oc, ray_dir);
     float c = dot(oc, oc) - sphere_radius * sphere_radius;
-    
+
     float discriminant = b * b - 4.0 * a * c;
 
     if (discriminant < 0.0) {
-        return result; // No intersection
+        return result;// No intersection
     }
 
     // Calculate the two intersection distances
     float t1 = (-b - sqrt(discriminant)) / (2.0 * a);
     float t2 = (-b + sqrt(discriminant)) / (2.0 * a);
 
-    // Add entry point if it's in front of the ray
-    if (t1 > 0.0) {
-        vec3 intersect_pt = ray_pos + t1 * ray_dir;
-        vec3 normal = normalize(intersect_pt - sphere_pos);
+    // Add entry point
+    vec3 intersect_pt1 = ray_pos + t1 * ray_dir;
+    vec3 normal1 = normalize(intersect_pt1 - sphere_pos);
 
-        result.hits[result.nb_hits].distance = t1;
-        result.hits[result.nb_hits].surface_normal = normal;
-        result.hits[result.nb_hits].surface_material_index = material_index;
-        result.nb_hits++;
-    }
+    result.hits[result.nb_hits].distance = t1;
+    result.hits[result.nb_hits].surface_normal = normal1;
+    result.hits[result.nb_hits].surface_material_index = material_index;
+    result.nb_hits++;
 
-    // Add exit point if it's in front of the ray
-    if (t2 > 0.0) {
-        vec3 intersect_pt = ray_pos + t2 * ray_dir;
-        vec3 normal = normalize(intersect_pt - sphere_pos);
+    // Add exit point
+    vec3 intersect_pt2 = ray_pos + t2 * ray_dir;
+    vec3 normal2 = normalize(intersect_pt2 - sphere_pos);
 
-        result.hits[result.nb_hits].distance = t2;
-        result.hits[result.nb_hits].surface_normal = -normal; // Negative normal for exit point
-        result.hits[result.nb_hits].surface_material_index = material_index;
-        result.nb_hits++;
-    }
+    result.hits[result.nb_hits].distance = t2;
+    result.hits[result.nb_hits].surface_normal = -normal2;// Negative normal for exit point
+    result.hits[result.nb_hits].surface_material_index = material_index;
+    result.nb_hits++;
 
     return result;
 }
@@ -541,15 +537,15 @@ Roth unionCSG(Roth roth1, Roth roth2) {
                 if (inside_count == 1){
                     result.hits[result.nb_hits] = roth1.hits[i];
                     result.nb_hits++;
-                    
+
                 }
                 inside_count--;
             }
-            else{
+            else {
                 if (inside_count == 0){
                     result.hits[result.nb_hits] = roth1.hits[i];
                     result.nb_hits++;
-                    
+
                 }
                 inside_count++;
             }
@@ -559,15 +555,15 @@ Roth unionCSG(Roth roth1, Roth roth2) {
                 if (inside_count == 1){
                     result.hits[result.nb_hits] = roth2.hits[j];
                     result.nb_hits++;
-                    
+
                 }
                 inside_count--;
             }
-            else{
+            else {
                 if (inside_count == 0){
                     result.hits[result.nb_hits] = roth2.hits[j];
                     result.nb_hits++;
-                    
+
                 }
                 inside_count++;
             }
@@ -598,40 +594,46 @@ Roth intersectionCSG(Roth roth1, Roth roth2, vec3 ray_dir) {
     result.nb_hits = 0;
 
     int i = 0, j = 0;
-    int inside1 = 0, inside2 = 0;
 
-    // Process both roths in order of increasing distance
+    // Merge hits from both roths, keeping them ordered by distance
+    int inside_count = 0;
     while (i < roth1.nb_hits && j < roth2.nb_hits && result.nb_hits < 8) {
-        Hit current_hit;
-        bool fromFirst = false;
-
-        // Determine which hit to process next
         if (roth1.hits[i].distance < roth2.hits[j].distance) {
-            current_hit = roth1.hits[i];
-            fromFirst = true;
+            if (i % 2 != 0){
+                if (inside_count == 2){
+                    result.hits[result.nb_hits] = roth1.hits[i];
+                    result.nb_hits++;
+
+                }
+                inside_count--;
+            }
+            else {
+                if (inside_count == 1){
+                    result.hits[result.nb_hits] = roth1.hits[i];
+                    result.nb_hits++;
+
+                }
+                inside_count++;
+            }
             i++;
         } else {
-            current_hit = roth2.hits[j];
-            fromFirst = false;
+            if (j % 2 != 0){
+                if (inside_count == 2){
+                    result.hits[result.nb_hits] = roth2.hits[j];
+                    result.nb_hits++;
+
+                }
+                inside_count--;
+            }
+            else {
+                if (inside_count == 1){
+                    result.hits[result.nb_hits] = roth2.hits[j];
+                    result.nb_hits++;
+
+                }
+                inside_count++;
+            }
             j++;
-        }
-
-        // Update inside state
-        if (fromFirst) {
-            inside1 = 1 - inside1; // Toggle between 0 and 1
-        } else {
-            inside2 = 1 - inside2; // Toggle between 0 and 1
-        }
-
-        // For intersection operation: add hit point when entering or leaving the intersection volume
-        if ((inside1 != 0 && inside2 == 1 && !fromFirst) || (inside1 == 1 && inside2 != 0 && fromFirst)) {
-            // Entering intersection - add hit
-            result.hits[result.nb_hits] = current_hit;
-            result.nb_hits++;
-        } else if ((inside1 != 0 && inside2 == 0 && !fromFirst) || (inside1 == 0 && inside2 != 0 && fromFirst)) {
-            // Leaving intersection - add hit 
-            result.hits[result.nb_hits] = current_hit;
-            result.nb_hits++;
         }
     }
 
@@ -650,7 +652,7 @@ Roth complementCSG(Roth roth) {
         result.hits[0].surface_normal = vec3(0.0, 0.0, 0.0);
         result.hits[0].surface_material_index = 0;
 
-        result.hits[1].distance = 1.0e30; // Very far away
+        result.hits[1].distance = 1.0e30;// Very far away
         result.hits[1].surface_normal = vec3(0.0, 0.0, 0.0);
         result.hits[1].surface_material_index = 0;
         return result;
@@ -662,7 +664,7 @@ Roth complementCSG(Roth roth) {
     for (int i = 0; i < roth.nb_hits; i++) {
         result.hits[i] = roth.hits[roth.nb_hits - 1 - i];
         // Invert normal for all hit points
-//        result.hits[i].surface_normal = -result.hits[i].surface_normal;
+        //        result.hits[i].surface_normal = -result.hits[i].surface_normal;
     }
 
     return result;
@@ -697,18 +699,18 @@ float rayCSG(vec3 ray_pos, vec3 ray_dir, out vec3 intersect_point, out vec3 norm
     Roth roth4 = ray_sphere_roth(ray_pos, ray_dir, sphere4_pos, sphere4_radius, 3);
 
     // 2. Perform (Sphere1 ∩ Sphere2) + Sphere3) – Sphere4
-    Roth intersection_result = intersectionCSG(roth1, roth2, ray_dir);   // Sphere1 ∩ Sphere2
-    Roth union_result = unionCSG(intersection_result, roth3);   // (Sphere1 ∩ Sphere2) + Sphere3
-    Roth final_result = differenceCSG(union_result, roth4, ray_dir);     // ((Sphere1 ∩ Sphere2) + Sphere3) - Sphere4
-    
+    Roth intersection_result = intersectionCSG(roth1, roth2, ray_dir);// Sphere1 ∩ Sphere2
+    Roth union_result = unionCSG(intersection_result, roth3);// (Sphere1 ∩ Sphere2) + Sphere3
+    Roth final_result = differenceCSG(union_result, roth4, ray_dir);// ((Sphere1 ∩ Sphere2) + Sphere3) - Sphere4
+
     // 3. Find closest hit point in the final result
     if (final_result.nb_hits > 0) {
         intersect_point = ray_pos + final_result.hits[0].distance * ray_dir;
         normal = final_result.hits[0].surface_normal;
         object_id = final_result.hits[0].surface_material_index;
-        object_type = 3; // Special type for CSG objects
+        object_type = 3;// Special type for CSG objects
         return final_result.hits[0].distance;
     }
 
-    return -1.0; // No intersection
+    return -1.0;// No intersection
 }

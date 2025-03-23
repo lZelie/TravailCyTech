@@ -63,7 +63,7 @@ constexpr std::array<glm::vec3, 256> TRIANGLES = {
 };
 
 // Lighting
-constexpr glm::vec4 LIGHT_POSITION{15.0f, 10.0f, -15.0f, 0.9f};
+constexpr glm::vec4 LIGHT_POSITION{0, 10.0f, 15.0f, 0.9f};
 constexpr glm::vec3 LIGHT_COLOR{1.0f, 1.0f, 0.99f};
 constexpr glm::vec3 LIGHT_AMBIENT{0.1f, 0.1f, 0.1f};
 
