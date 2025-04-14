@@ -22,7 +22,7 @@ constexpr int FPS_UPDATE_DELAY = 1;
 // Scene data
 constexpr std::array<glm::vec4, 256> SPHERES = {
     glm::vec4{5.0f, 0.0f, -10.0f, 1.0f}, 
-    {14.0f, 1.0f, -16.0f, 0.1f}, 
+    {14.0f, 1.0f, -16.0f, 2.0f}, 
     {15.0f, 10.0f, 15.0f, 10.0f}
 };
 
@@ -35,22 +35,22 @@ constexpr std::array<glm::vec4, 4> CSG = {
 
 constexpr std::array<glm::vec3, 256> PLANES = {
     // Bottom face: normal pointing down (-Y)
-    glm::vec3{0.0f, -30.0f, 0.0f},
+    glm::vec3{0.0f, -40.0f, 0.0f},
     glm::vec3{0.0f, 1.0f, 0.0f},
     // Top face: normal pointing up (+Y)
-    glm::vec3{0.0f, 30.0f, 0.0f},
+    glm::vec3{0.0f, 40.0f, 0.0f},
     glm::vec3{0.0f, -1.0f, 0.0f},
     // Left face: normal pointing left (-X)
-    glm::vec3{-30.0f, 0.0f, 0.0f},
+    glm::vec3{-40.0f, 0.0f, 0.0f},
     glm::vec3{1.0f, 0.0f, 0.0f},
     // Right face: normal pointing right (+X)
-    glm::vec3{30.0f, 0.0f, 0.0f},
+    glm::vec3{40.0f, 0.0f, 0.0f},
     glm::vec3{-1.0f, 0.0f, 0.0f},
     // Back face: normal pointing backward (-Z)
-    glm::vec3{0.0f, 0.0f, -30.0f},
+    glm::vec3{0.0f, 0.0f, -40.0f},
     glm::vec3{0.0f, 0.0f, 1.0f},
     // Front face: normal pointing forward (+Z)
-    glm::vec3{0.0f, 0.0f, 30.0f},
+    glm::vec3{0.0f, 0.0f, 40.0f},
     glm::vec3{0.0f, 0.0f, -1.0f},
 };
 
@@ -60,6 +60,10 @@ constexpr std::array<glm::vec3, 256> TRIANGLES = {
     glm::vec3{3.0f, -1.0f, 5.0f}, glm::vec3{5.0f, -1.0f, 5.0f}, glm::vec3{4.0f, 2.0f, 4.0f},
     glm::vec3{5.0f, -1.0f, 5.0f}, glm::vec3{5.0f, -1.0f, 3.0f}, glm::vec3{4.0f, 2.0f, 4.0f},
     glm::vec3{5.0f, -1.0f, 3.0f}, glm::vec3{3.0f, -1.0f, 3.0f}, glm::vec3{4.0f, 2.0f, 4.0f},
+    glm::vec3{3.0f, -1.0f, 3.0f}, glm::vec3{4.0f, -3.0f, 4.0f}, glm::vec3{3.0f, -1.0f, 5.0f},
+    glm::vec3{3.0f, -1.0f, 5.0f}, glm::vec3{4.0f, -3.0f, 4.0f}, glm::vec3{5.0f, -1.0f, 5.0f},
+    glm::vec3{5.0f, -1.0f, 5.0f}, glm::vec3{4.0f, -3.0f, 4.0f}, glm::vec3{5.0f, -1.0f, 3.0f},
+    glm::vec3{5.0f, -1.0f, 3.0f}, glm::vec3{4.0f, -3.0f, 4.0f}, glm::vec3{3.0f, -1.0f, 3.0f},
 };
 
 // Lighting
@@ -71,7 +75,7 @@ constexpr glm::vec3 LIGHT_AMBIENT{0.1f, 0.1f, 0.1f};
 struct ShaderLocations {
     static constexpr int NUM_OBJECTS = 3;
     static constexpr int NUM_PLANES = 6;
-    static constexpr int NUM_TRIANGLES = 4;
+    static constexpr int NUM_TRIANGLES = 8;
     
     static constexpr int VIEW_DATA = 3;
     static constexpr int SPHERES_DATA = 19;
@@ -83,6 +87,7 @@ struct ShaderLocations {
     static constexpr int LIGHT_TYPE = 803;
     static constexpr int SAMPLE_RATE = 804;
     static constexpr int CSG_SPHERES = 805;
+    static constexpr int RECURSION_DEPTH = 809;
 };
 
 
@@ -93,6 +98,7 @@ private:
     float cameraFov;
     gl3::camera camera;
     int light_type;
+    unsigned int depth = 0;
     std::unique_ptr<gl3::shader_class> shaderProgram;
     std::unique_ptr<gl3::vao> quadVAO;
     std::unique_ptr<gl3::vbo> quadVBO;

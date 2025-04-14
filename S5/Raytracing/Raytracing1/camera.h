@@ -23,7 +23,7 @@ namespace gl3
 
         int width, height;
 
-        float speed = 1.0f, sensitivity = 100.0f;
+        float speed = 100.0f, sensitivity = 100.0f;
 
         camera(int width, int height, glm::vec3 Position);
 

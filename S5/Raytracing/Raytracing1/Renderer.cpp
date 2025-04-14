@@ -56,6 +56,14 @@ void Renderer::setupCallbacks()
         {
             renderer->light_type = renderer->light_type == 0 ? 1 : 0;
         }
+        if (key == GLFW_KEY_KP_ADD && action == GLFW_PRESS)
+        {
+            renderer->depth ++;
+        }
+        if (key == GLFW_KEY_KP_SUBTRACT && action == GLFW_PRESS && renderer->depth > 0)
+        {
+            renderer->depth --;
+        }
     });
 
     // Store this instance for callbacks
@@ -113,6 +121,7 @@ void Renderer::updateShaderUniforms() const
     glUniform3fv(ShaderLocations::LIGHT_AMBIENT, 1, &LIGHT_AMBIENT[0]);
     glUniform1i(ShaderLocations::LIGHT_TYPE, light_type);
     glUniform1i(ShaderLocations::SAMPLE_RATE, SAMPLE_RATE);
+    glUniform1ui(ShaderLocations::RECURSION_DEPTH, depth);
 }
 
 Renderer::Renderer() :

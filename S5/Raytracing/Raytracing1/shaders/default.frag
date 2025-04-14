@@ -14,6 +14,7 @@ layout (location = 802) uniform vec3 ambient_light;
 layout (location = 803) uniform int lighting_type;
 layout (location = 804) uniform int sample_rate;
 layout (location = 805) uniform vec4 roth_spheres[4];
+layout (location = 809) uniform uint recursion_depth;
 
 // Material properties (could be extended to have different materials per object)
 struct Material {
@@ -21,6 +22,10 @@ struct Material {
     vec3 diffuse;
     vec3 specular;
     float shininess;
+    float reflection_coef;
+    float refraction_coef;
+    float refraction_index;
+    bool is_solid;
 };
 
 struct Hit {
@@ -54,13 +59,13 @@ vec2 compute_uv();
 
 vec3 raycast(vec2 uv);// compute primary ray, computeIntersection, shade, return color
 
-vec3 calculate_lighting(vec3 position, vec3 normal, vec3 view_dir, Material material);
+vec3 calculate_lighting(vec3 position, vec3 normal, vec3 view_dir, Material material, vec3 light_color);
 
 vec3 phong_brdf(vec3 light_pos, vec3 normal, vec3 view_dir, Material material);
 
 vec3 blinn_brdf(vec3 light_pos, vec3 normal, vec3 view_dir, Material material);
 
-Material get_material(int object_type, int object_id);
+Material get_material(int object_type, int object_id, vec3 position);
 
 float calculate_shadows(vec3 position, vec3 light_dir, float light_distance);
 
@@ -340,25 +345,135 @@ vec2 compute_uv(){
     }
 }
 
-vec3 raycast(vec2 uv){
-    vec3 ray_pos;
-    vec3 ray_dir;
-    compute_primary_ray(uv, ray_pos, ray_dir);
+vec3 raycast(vec2 uv) {
+    // Initialize for primary ray
+    vec3 ray_pos[16];
+    vec3 ray_dir[16];
+    uint nb_rays = 1;
+    compute_primary_ray(uv, ray_pos[0], ray_dir[0]);
 
-    // Then try regular scene intersection
-    vec3 scene_intersect_point;
-    vec3 scene_normal;
-    int scene_object_id, scene_object_type;
-    float scene_dist = compute_nearest_intersection(ray_pos, ray_dir, scene_intersect_point, scene_normal, scene_object_id, scene_object_type);
+    // Color accumulation for reflections
+    vec3 color = vec3(0.0);
+    vec3 mask[16];
+    mask[0] = vec3(1.0);
+    vec3 ligcol[16];
+    ligcol[0] = light_color;
 
-    if (scene_dist > 0.0) {
-        Material material = get_material(scene_object_type, scene_object_id);
-        vec3 view_dir = normalize(ray_pos - scene_intersect_point);
-        return calculate_lighting(scene_intersect_point, scene_normal, view_dir, material);
-    } else {
-        // If no intersection, return background color
-        return vec3(0.2, 0.3, 0.4);
+    bool inside_object[16];
+    inside_object[0] = false;
+    float current_ior[16];
+    current_ior[0] = 1.0f;
+
+    // Iterative ray tracing loop (instead of recursion)
+    int depth = 0;
+    for (; depth <= recursion_depth; depth++) {
+        for (uint i = 0; i < nb_rays; i++){
+            // Try scene intersection
+            vec3 intersect_point;
+            vec3 normal;
+            int object_id, object_type;
+            float dist = compute_nearest_intersection(ray_pos[i], ray_dir[i], intersect_point, normal, object_id, object_type);
+
+            // If we hit something
+            if (dist > 0.0) {
+                Material material = get_material(object_type, object_id, intersect_point);
+
+                // Determine if inside or outside (affects normals)
+                if (inside_object[i]) {
+                    normal = -normal;
+                }
+
+                vec3 view_dir = normalize(ray_pos[i] - intersect_point);
+
+                // Add direct lighting contribution
+                vec3 direct_lighting = calculate_lighting(intersect_point, normal, view_dir, material, ligcol[i]);
+                color += mask[i] * direct_lighting;
+                bool has_refraction = material.refraction_coef > 0.0f;
+                bool has_reflection = material.reflection_coef > 0.0f;
+
+                if (has_refraction && depth < recursion_depth) {
+                    float eta;
+
+                    eta = current_ior[i] / material.refraction_index;
+                    current_ior[i] = material.refraction_index;
+
+                    // Calculate cosine of angle between ray and normal
+                    float cos_theta = min(dot(-view_dir, normal), 1.0);
+                    float sin_theta = sqrt(1.0 - cos_theta * cos_theta);
+
+                    // Check for total internal reflection
+                    if (eta * sin_theta > 1.0) {
+                        // Total internal reflection - handle like reflection
+                        ray_dir[i] = reflect(-view_dir, normal);
+                    } else {
+                        // Refraction using Snell's law
+                        if (material.is_solid) {
+                            vec3 perpendicular = eta * (view_dir + cos_theta * normal);
+                            vec3 parallel = -sqrt(1.0 - dot(perpendicular, perpendicular)) * normal;
+                            ray_dir[i] = normalize(perpendicular + parallel);
+                        }
+                        else {
+                            ray_dir[i] = refract(ray_dir[i], normal, eta);
+                        }
+                    }
+
+                    // Calculate Fresnel term for reflection/refraction mix
+                    float r0 = pow((current_ior[i] - 1.0) / (current_ior[i] + 1.0), 2);
+                    float fresnel = r0 + (1.0 - r0) * pow(1.0 - abs(dot(-view_dir, normal)), 5.0);
+
+                    // Apply Fresnel effect (simplified)
+                    if (fresnel > 0.5) {
+                        // Reflect
+                        ray_dir[i] = reflect(-view_dir, normal);
+                        ray_pos[i] = intersect_point + normal * 1e-3f;
+                    } else {
+                        // Refract
+                        ray_pos[i] = intersect_point - normal * 1e-3f;// Move slightly inside/outside
+                        inside_object[i] = !inside_object[i];
+                    }
+
+                    if (has_reflection && nb_rays < 16){
+                        // Update ray for next bounce
+                        ray_dir[nb_rays] = reflect(-view_dir, normal);
+                        ray_pos[nb_rays] = intersect_point + normal * 1e-3f;// Offset to avoid self-intersection
+
+                        // Attenuate mask by reflection coefficient
+                        mask[nb_rays] *= material.reflection_coef / 100.0;
+
+                        ligcol[nb_rays] *= material.diffuse;
+                        inside_object[nb_rays] = inside_object[i];
+                        current_ior[nb_rays] = current_ior[i];
+                        nb_rays++;
+                    }
+
+                    // Attenuate mask by refraction coefficient
+                    mask[i] *= material.refraction_coef / 100.0;
+
+                    // Adjust light color passing through the material
+                    ligcol[i] *= material.diffuse;
+                }
+                else if (has_reflection) {
+                    // Update ray for next bounce
+                    ray_dir[i] = reflect(-view_dir, normal);
+                    ray_pos[i] = intersect_point + normal * 1e-3f;// Offset to avoid self-intersection
+
+                    // Attenuate mask by reflection coefficient
+                    mask[i] *= material.reflection_coef / 100.0;
+
+                    ligcol[i] *= material.diffuse;
+                }
+                else {
+                    // No more reflections, exit the loop
+                    break;
+                }
+            } else {
+                // Hit nothing, add background contribution and exit
+                color += mask[i] * vec3(0.2f, 0.3f, 0.4f);
+                break;
+            }
+        }
     }
+    return color / (depth + 1);
 }
 
 // Determine if a point is in shadow
@@ -378,7 +493,7 @@ float calculate_shadows(vec3 position, vec3 light_dir, float light_distance) {
     return (shadow_dist > 0.0 && shadow_dist < light_distance) ? distance(position, shadow_intersec) / distance(position, light.xyz) : 1.0;
 }
 
-vec3 calculate_lighting(vec3 position, vec3 normal, vec3 view_dir, Material material){
+vec3 calculate_lighting(vec3 position, vec3 normal, vec3 view_dir, Material material, vec3 light_color){
     // Ambient
     vec3 ambient = material.ambient * ambient_light;
 
@@ -417,8 +532,13 @@ vec3 blinn_brdf(vec3 light_dir, vec3 normal, vec3 view_dir, Material material){
     return specular;
 }
 
-Material get_material(int object_type, int object_id) {
+Material get_material(int object_type, int object_id, vec3 position) {
     Material mat;
+
+    mat.reflection_coef = 0.0f;
+    mat.refraction_coef = 0.0f;
+    mat.refraction_index = 1.0f;
+    mat.is_solid = true;
 
     // Different material properties based on object type
     if (object_type == 0) { // Sphere
@@ -431,32 +551,65 @@ Material get_material(int object_type, int object_id) {
             mat.diffuse = vec3(0.8, 0.2, 0.2);// Red
             mat.specular = vec3(1.0, 1.0, 1.0);
             mat.shininess = 32.0;
+            mat.reflection_coef = 100.0;// Added reflection
         } else if (material_variant == 1) {
-            // Light
             mat.ambient = ambient_light;
-            mat.diffuse = light_color;
+            mat.diffuse = vec3(1.0f, 0.0f, 1.0f);
             mat.specular = vec3(0.9, 0.9, 0.9);
             mat.shininess = 128.0;
+            mat.refraction_coef = 100.0f;
+            mat.refraction_index = 1.333333f;
+            mat.is_solid = false;
         } else {
             // Glass-like material
             mat.ambient = vec3(0.1, 0.1, 0.1);
-            mat.diffuse = vec3(0.2, 0.2, 0.8);// Blue
+            mat.diffuse = vec3(1.0, 1.0, 1.0);// Blue
             mat.specular = vec3(1.0, 1.0, 1.0);
             mat.shininess = 256.0;
+            mat.refraction_coef = 100.0f;
+            mat.refraction_index = 1.0f;
         }
     }
     else if (object_type == 1) { // Plane
-        // Checkerboard pattern for planes
+        // Create checkerboard pattern based on the position
+        // Get plane data to determine orientation
+        vec3 plane_pos = planes[object_id * 2];
+        vec3 plane_normal = normalize(planes[object_id * 2 + 1]);
+
+        // Create a coordinate system for the plane
+        vec3 u_axis = normalize(cross(plane_normal, abs(plane_normal.y) < 0.999 ? vec3(0, 1, 0) : vec3(1, 0, 0)));
+        vec3 v_axis = normalize(cross(plane_normal, u_axis));
+
+        // Project the position onto the plane's coordinate system
+        float u = dot(position - plane_pos, u_axis);
+        float v = dot(position - plane_pos, v_axis);
+
+        // Create the checkerboard pattern
+        float scale = 1.0;// Size of checker squares
+        bool isEvenU = mod(floor(u * scale), 2.0) < 1.0;
+        bool isEvenV = mod(floor(v * scale), 2.0) < 1.0;
+        bool isBlack = isEvenU != isEvenV;// XOR for checkerboard pattern
+
         mat.ambient = vec3(0.1, 0.1, 0.1);
-        mat.diffuse = vec3(0.9, 0.9, 0.9);// White
         mat.specular = vec3(0.2, 0.2, 0.2);
         mat.shininess = 4.0;
+
+        if (isBlack) {
+            // Black square
+            mat.diffuse = vec3(0.1, 0.1, 0.1);// Dark grey/black
+        } else {
+            // White square
+            mat.diffuse = vec3(0.9, 0.9, 0.9);// White
+        }
     }
     else if (object_type == 2){ // Triangle/Mesh
         mat.ambient = vec3(0.1, 0.1, 0.1);
         mat.diffuse = vec3(0.8, 0.8, 0.2);// Yellow
         mat.specular = vec3(0.5, 0.5, 0.5);
         mat.shininess = 16.0;
+        mat.is_solid = true;
+        mat.refraction_index = 2.42f;
+        mat.refraction_coef = 100.0f;
     }
     else {
         mat.ambient = vec3(0.1, 0.1, 0.1);
