@@ -25,6 +25,7 @@ struct Material {
     float reflection_coef;
     float refraction_coef;
     float refraction_index;
+    vec3 absorption;
 };
 
 struct Hit {
@@ -373,6 +374,15 @@ vec3 raycast(vec2 uv) {
     int nb_eta[16];
     nb_eta[0] = 0;
 
+    // Track path length through material for Beer's law
+    float path_length[16];
+    path_length[0] = 0.0;
+
+    // Material absorption coefficients for Beer's law
+    vec3 absorption_coef[16];
+    absorption_coef[0] = vec3(0.0);
+
+
     // Main ray tracing loop - iterates up to maximum recursion depth
     int depth = 0;
     for (; depth <= recursion_depth; depth++) {
@@ -415,10 +425,16 @@ vec3 raycast(vec2 uv) {
                             eta_to = material.refraction_index;
                             eta_stack[i][nb_eta[i]] = eta_to;
                             nb_eta[i]++;
+                            
+                            path_length[i] = dist;
                         }
                         else {
                             normal = -normal;
+                            absorption_coef[i] = material.absorption;
+                            vec3 absorption = exp(-absorption_coef[i] * path_length[i]);
+                            mask[i] *= absorption;
 
+                            path_length[i] = 0.0f;
                             if(nb_eta[i] > 0){
                                 nb_eta[i]--;
                                 eta_to = eta_stack[i][nb_eta[i]];
@@ -463,6 +479,9 @@ vec3 raycast(vec2 uv) {
 
                             // Calculate new ray's contribution based on reflection coefficient
                             mask[nb_rays] = mask[i] * (material.reflection_coef);
+                            
+                            path_length[nb_rays] = path_length[i];
+                            absorption_coef[nb_rays] = absorption_coef[i];
 
                             for (int j = 0; j < nb_eta[i]; j++){
                                 eta_stack[nb_rays][j] = eta_stack[i][j];
@@ -506,8 +525,7 @@ vec3 raycast(vec2 uv) {
         }
     }
     // Return final accumulated color
-    // Note: commented out division by depth that would average the color
-    return color/* / (depth + 1)*/;
+    return color;
 }
 
 // Determine if a point is in shadow
@@ -572,6 +590,7 @@ Material get_material(int object_type, int object_id, vec3 position) {
     mat.reflection_coef = 0.0f;
     mat.refraction_coef = 0.0f;
     mat.refraction_index = 1.0f;
+    mat.absorption = vec3(0.0);
 
     // Different material properties based on object type
     if (object_type == 0) { // Sphere
@@ -595,6 +614,7 @@ Material get_material(int object_type, int object_id, vec3 position) {
             mat.shininess = 128.0;
             mat.refraction_coef = 1.0f;
             mat.refraction_index = 1.3333333f;
+            mat.absorption = vec3(0.8, 0.0, 0.0);
             break;
             case 2:
             // Glass-like material
