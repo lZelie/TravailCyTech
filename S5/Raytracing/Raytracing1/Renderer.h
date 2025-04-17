@@ -21,9 +21,11 @@ constexpr int FPS_UPDATE_DELAY = 1;
 
 // Scene data
 constexpr std::array<glm::vec4, 256> SPHERES = {
-    glm::vec4{5.0f, 0.0f, -10.0f, 1.0f}, 
-    {14.0f, 1.0f, -16.0f, 2.0f}, 
-    {15.0f, 10.0f, 15.0f, 10.0f}
+    glm::vec4{5.0f, -35.0f, -10.0f, 1.0f}, 
+    {14.0f, -35.0f, -16.0f, 1.0f}, 
+    {15.0f, -35.0f, 15.0f, 1.0f},
+    {15.0f, -35.0f, 15.0f, 0.99f},
+    {10.0f, -35.0f, -16.0f, 1.0f}, 
 };
 
 constexpr std::array<glm::vec4, 4> CSG = {
@@ -73,8 +75,8 @@ constexpr glm::vec3 LIGHT_AMBIENT{0.1f, 0.1f, 0.1f};
 
 // Shader uniform locations
 struct ShaderLocations {
-    static constexpr int NUM_OBJECTS = 3;
-    static constexpr int NUM_PLANES = 6;
+    static constexpr int NUM_SPHERE = 5;
+    static constexpr int NUM_PLANES = 1;
     static constexpr int NUM_TRIANGLES = 8;
     
     static constexpr int VIEW_DATA = 3;

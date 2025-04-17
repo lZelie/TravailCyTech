@@ -64,6 +64,10 @@ void Renderer::setupCallbacks()
         {
             renderer->depth --;
         }
+        if (key == GLFW_KEY_U && action == GLFW_PRESS)
+        {
+            renderer->shaderProgram = std::make_unique<gl3::shader_class>("shaders/default.vert", "shaders/default.frag");
+        }
     });
 
     // Store this instance for callbacks
@@ -102,7 +106,7 @@ void Renderer::updateShaderUniforms() const
     const std::vector view = prepareViewData();
 
     // Set object counts
-    glUniform1i(0, ShaderLocations::NUM_OBJECTS);
+    glUniform1i(0, ShaderLocations::NUM_SPHERE);
     glUniform1i(1, ShaderLocations::NUM_PLANES);
     glUniform1i(2, ShaderLocations::NUM_TRIANGLES);
 
