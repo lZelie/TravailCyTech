@@ -448,27 +448,22 @@ vec3 raycast(vec2 uv) {
                         current_ior[i] = eta_to;
 
                         // Calculate cosine of angle between ray and normal
-                        float cos_theta = min(dot(-view_dir, normal), 1.0);
-                        float sin_theta = sqrt(1.0 - cos_theta * cos_theta);
+                        float cos_theta_i = abs(dot(-ray_dir[i], normal));
+                        float sin_theta = sqrt(1.0 - cos_theta_i * cos_theta_i);
 
                         ray_dir[i] = refract(-view_dir, normal, eta);
+                        
+                        float cos_theta_t = abs(dot(-ray_dir[i], normal));
+                        
+                        bool total_internal_reflection = (eta_from / eta_to) * (eta_from / eta_to) * sin_theta >= 1.0;
 
+                        float cos_theta = eta_from <= eta_to ? cos_theta_i : cos_theta_t; 
                         // Calculate Fresnel term to determine reflection vs refraction ratio
                         // Schlick's approximation for Fresnel equations
                         float r0 = pow((current_ior[i] - 1.0) / (current_ior[i] + 1.0), 2);
-                        float fresnel = r0 + (1.0 - r0) * pow(1.0 - abs(dot(-view_dir, normal)), 5.0);
+                        float fresnel = !total_internal_reflection ? r0 + (1.0 - r0) * pow(1.0 - abs(dot(-view_dir, normal)), 5.0) : 1.0f;
 
-                        // Simplified Fresnel effect - if fresnel > 0.5, reflect, otherwise refract
-                        if (fresnel > 0.5) {
-                            // Reflect the ray
-                            ray_dir[i] = reflect(-view_dir, normal);
-                            // Move ray origin slightly away from surface to avoid self-intersection
-                            ray_pos[i] = intersect_point + normal * 1e-3f;
-                        } else {
-                            // Refract the ray
-                            // Move ray origin slightly inside/outside the surface
-                            ray_pos[i] = intersect_point - normal * 1e-3f;
-                        }
+                        float refraction_coef = material.refraction_coef * fresnel;
 
                         // Handle both reflection and refraction (spawn additional ray if possible)
                         if (has_reflection && nb_rays < 16){
