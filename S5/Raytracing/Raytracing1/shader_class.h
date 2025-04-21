@@ -1,7 +1,3 @@
-//
-// Created by VISUAL on 03/03/2025.
-//
-
 #ifndef SHADER_CLASS_H
 #define SHADER_CLASS_H
 

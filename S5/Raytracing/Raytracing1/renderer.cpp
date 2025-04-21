@@ -1,7 +1,3 @@
-//
-// Created by VISUAL on 07/03/2025.
-//
-
 #include "renderer.h"
 
 #include <iostream>
@@ -238,7 +234,7 @@ void gl3::renderer::render_ui()
             }
 
             // Camera FOV
-            if (float fov = cam.fov; ImGui::SliderFloat("FOV", &fov, 10.0f, 120.0f))
+            if (float fov = cam.fov; ImGui::SliderFloat("FOV", &fov, 0.0f, glm::pi<float>()))
             {
                 cam.fov = fov;
             }

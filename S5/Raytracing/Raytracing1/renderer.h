@@ -1,7 +1,3 @@
-//
-// Created by VISUAL on 07/03/2025.
-//
-
 #ifndef RENDERER_H
 #define RENDERER_H
 #include <memory>
@@ -14,7 +10,7 @@
 // Application constants
 constexpr int INITIAL_WIDTH = 640;
 constexpr int INITIAL_HEIGHT = 480;
-constexpr float CAMERA_FOV = 45.0f;
+constexpr float CAMERA_FOV = 1.5f;
 constexpr char WINDOW_TITLE[] = "RTX on";
 constexpr int SAMPLE_RATE = 1;
 constexpr int FPS_UPDATE_DELAY = 1;

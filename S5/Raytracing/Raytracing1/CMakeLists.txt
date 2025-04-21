@@ -38,6 +38,14 @@ if (NOT GLEW_FOUND)
         FetchContent_MakeAvailable(glew)
         add_subdirectory(${CMAKE_SOURCE_DIR}/external/glew/build/cmake)
     endif()
+
+    # Create an alias target to make linking consistent
+    if(TARGET glew AND NOT TARGET GLEW::GLEW)
+        add_library(GLEW::GLEW ALIAS glew)
+    endif()
+    if(TARGET glew_s AND NOT TARGET GLEW::GLEW_S)
+        add_library(GLEW::GLEW_S ALIAS glew_s)
+    endif()
 endif (NOT GLEW_FOUND)
 
 # ImGui
@@ -79,4 +87,4 @@ add_executable(Raytracing1 main.cpp
         scene_data.h
 )
 target_include_directories(Raytracing1 PRIVATE "${CMAKE_SOURCE_DIR}/include" external/glew/include)
-target_link_libraries(Raytracing1 ${OPENGL_LIBRARY} glfw glm::glm-header-only glew_s imgui)
+target_link_libraries(Raytracing1 ${OPENGL_LIBRARY} glfw glm::glm-header-only GLEW::GLEW_S imgui)

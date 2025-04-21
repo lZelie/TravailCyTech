@@ -1,7 +1,3 @@
-//
-// Created by VISUAL on 03/03/2025.
-//
-
 #include <fstream>
 #include <iostream>
 

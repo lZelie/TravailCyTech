@@ -1,7 +1,3 @@
-//
-// Created by cytech on 24/09/24.
-//
-
 #include <GL/glew.h>
 #include "camera.h"
 #include "shader_class.h"

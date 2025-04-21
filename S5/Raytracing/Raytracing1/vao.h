@@ -1,7 +1,3 @@
-//
-// Created by cytech on 24/09/24.
-//
-
 #ifndef GL2_VAO_H
 #define GL2_VAO_H
 

@@ -1,7 +1,3 @@
-//
-// Created by cytech on 24/09/24.
-//
-
 #include "vao.h"
 
 #include <GL/glew.h>
