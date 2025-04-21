@@ -16,7 +16,7 @@ namespace gl3
     class shader_class
     {
     public:
-        GLuint ID;
+        GLuint id;
 
         shader_class(const char* vertexFile, const char* fragmentFile);
 

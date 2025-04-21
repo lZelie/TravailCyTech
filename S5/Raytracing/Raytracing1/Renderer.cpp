@@ -92,10 +92,10 @@ std::vector<float> Renderer::prepareViewData() const
 {
     return {
         windowSize[0], windowSize[1],
-        camera.Position[0], camera.Position[1], camera.Position[2],
-        camera.Orientation[0] + camera.Position[0],
-        camera.Orientation[1] + camera.Position[1],
-        camera.Orientation[2] + camera.Position[2],
+        camera.position[0], camera.position[1], camera.position[2],
+        camera.orientation[0] + camera.position[0],
+        camera.orientation[1] + camera.position[1],
+        camera.orientation[2] + camera.position[2],
         cameraFov,
         0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f
     };
@@ -126,6 +126,7 @@ void Renderer::updateShaderUniforms() const
     glUniform1i(ShaderLocations::LIGHT_TYPE, light_type);
     glUniform1i(ShaderLocations::SAMPLE_RATE, SAMPLE_RATE);
     glUniform1ui(ShaderLocations::RECURSION_DEPTH, depth);
+    glUniform1ui(ShaderLocations::USE_FRESNEL, false);
 }
 
 Renderer::Renderer() :
@@ -168,7 +169,7 @@ void Renderer::renderFrame()
     glfwPollEvents();
 
     // Process camera inputs
-    camera.Inputs(window);
+    camera.inputs(window);
 
     updateFps();
     std::stringstream ss;

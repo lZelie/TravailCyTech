@@ -49,13 +49,13 @@ gl3::shader_class::shader_class(const char *vertexFile, const char *fragmentFile
     compileErrors(fragmentShader, "FRAGMENT");
     // Create Shader Program Object and get its reference
     std::cout << "Linking program\n";
-    ID = glCreateProgram();
+    id = glCreateProgram();
     // Attach the Vertex and Fragment Shaders to the Shader Program
-    glAttachShader(ID, vertexShader);
-    glAttachShader(ID, fragmentShader);
+    glAttachShader(id, vertexShader);
+    glAttachShader(id, fragmentShader);
     // Wrap-up/Link all the shaders together into the Shader Program
-    glLinkProgram(ID);
-    compileErrors(ID, "PROGRAM");
+    glLinkProgram(id);
+    compileErrors(id, "PROGRAM");
     std::cout << "Linking program ok\n";
     // Delete the now useless Vertex and Fragment Shader objects
     glDeleteShader(vertexShader);
@@ -63,7 +63,7 @@ gl3::shader_class::shader_class(const char *vertexFile, const char *fragmentFile
 }
 
 void gl3::shader_class::activate() const {
-    glUseProgram(ID);
+    glUseProgram(id);
 }
 
 void gl3::shader_class::deactivate()
@@ -72,7 +72,7 @@ void gl3::shader_class::deactivate()
 }
 
 gl3::shader_class::~shader_class() {
-    glDeleteProgram(ID);
+    glDeleteProgram(id);
 }
 
 void gl3::shader_class::compileErrors(unsigned int shader, const char *type) {

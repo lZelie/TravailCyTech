@@ -12,46 +12,50 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
 
-gl3::camera::camera(int width, int height, glm::vec3 Position): width(width), height(height), Position(Position)
+gl3::camera::camera(const int width, const int height, const glm::vec3 position): position(position), width(width), height(height)
 {
+    last_update_time = glfwGetTime();
 }
 
-void gl3::camera::Matrix(float FOVdeg, float nearPlane, float farPlane, gl3::shader_class& shader, const char* uniform)
+void gl3::camera::matrix(const float fov_deg, const float nearPlane, const float farPlane, const shader_class& shader, const char* uniform) const
 {
-    glm::mat4 view = glm::mat4(1.0f);
-    glm::mat4 projection = glm::mat4(1.0f);
+    const glm::mat4 view = glm::lookAt(position, position + orientation, up);
+    const glm::mat4 projection = glm::perspective(glm::radians(fov_deg), static_cast<float>(width) / static_cast<float>(height), nearPlane, farPlane);
 
-    view = glm::lookAt(Position, Position + Orientation, Up);
-    projection = glm::perspective(glm::radians(FOVdeg), (float)(width / height), nearPlane, farPlane);
-
-    glUniformMatrix4fv(glGetUniformLocation(shader.ID, uniform), 1, GL_FALSE, glm::value_ptr(projection * view));
+    glUniformMatrix4fv(glGetUniformLocation(shader.id, uniform), 1, GL_FALSE, glm::value_ptr(projection * view));
 }
 
-void gl3::camera::Inputs(GLFWwindow* window)
+void gl3::camera::inputs(GLFWwindow* window)
 {
+    const double current_time = glfwGetTime();
+    const auto delta_time = static_cast<float>(current_time - last_update_time);
+    last_update_time = current_time;
+
+    const float fixed_speed = speed * delta_time * 60.0f;
+    
     if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
     {
-        Position += speed * Orientation;
+        position += fixed_speed * orientation;
     }
     if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
     {
-        Position += speed * -glm::normalize(glm::cross(Orientation, Up));
+        position += fixed_speed * -glm::normalize(glm::cross(orientation, up));
     }
     if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
     {
-        Position += speed * -Orientation;
+        position += fixed_speed * -orientation;
     }
     if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
     {
-        Position += speed * glm::normalize(glm::cross(Orientation, Up));
+        position += fixed_speed * glm::normalize(glm::cross(orientation, up));
     }
     if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS)
     {
-        Position += speed * Up;
+        position += fixed_speed * up;
     }
     if (glfwGetKey(window, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS)
     {
-        Position += speed * -Up;
+        position += fixed_speed * -up;
     }
     if (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS)
     {
@@ -66,45 +70,45 @@ void gl3::camera::Inputs(GLFWwindow* window)
     {
         glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);  // DISABLED is better than HIDDEN
 
-        if (firstClick)
+        if (first_click)
         {
-            glfwSetCursorPos(window, (width / 2), (height / 2));
-            firstClick = false;
+            glfwSetCursorPos(window, static_cast<float>(width) / 2.0f, static_cast<float>(height) / 2);
+            first_click = false;
         }
 
-        double mX, mY;
-        glfwGetCursorPos(window, &mX, &mY);
+        double mouse_x;
+        double mouse_y;
+        glfwGetCursorPos(window, &mouse_x, &mouse_y);
 
         // Calculate rotation based on mouse movement from center
-        float rotX = sensitivity * (float)(mY - (height / 2)) / height;
-        float rotY = sensitivity * (float)(mX - (width / 2)) / width;  // Fixed: use width here
+        const float rotation_x = sensitivity /** delta_time * 60.0f*/ * static_cast<float>(mouse_y - static_cast<float>(height) / 2.0f) / static_cast<float>(height);
+        const float rotation_y = sensitivity /** delta_time * 60.0f*/ * static_cast<float>(mouse_x - (static_cast<float>(width) / 2)) / static_cast<float>(width);
 
         // Calculate new orientation with pitch (X) rotation
-        glm::vec3 right = glm::normalize(glm::cross(Orientation, Up));
-        glm::vec3 newOrientation = glm::rotate(Orientation, glm::radians(-rotX), right);
+        const glm::vec3 right = glm::normalize(glm::cross(orientation, up));
 
         // Prevent camera from flipping by checking the angle with up vector
         // Allow more range (10-15 degrees) for natural movement
-        if (!(glm::angle(newOrientation, Up) <= glm::radians(10.0f) ||
-              glm::angle(newOrientation, -Up) <= glm::radians(10.0f)))
+        if (const glm::vec3 new_orientation = glm::rotate(orientation, glm::radians(-rotation_x), right); !(glm::angle(new_orientation, up) <= glm::radians(10.0f) ||
+              glm::angle(new_orientation, -up) <= glm::radians(10.0f)))
         {
-            Orientation = newOrientation;
+            orientation = new_orientation;
         }
 
         // Apply yaw (Y) rotation around the Up axis
-        Orientation = glm::normalize(glm::rotate(Orientation, glm::radians(-rotY), Up));
+        orientation = glm::normalize(glm::rotate(orientation, glm::radians(-rotation_y), up));
 
         // Reset cursor position to center
-        glfwSetCursorPos(window, (width / 2), (height / 2));
+        glfwSetCursorPos(window, static_cast<float>(width) / 2, static_cast<float>(height) / 2);
     }
     else if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_RELEASE)
     {
         glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
-        firstClick = true;
+        first_click = true;
     }
 }
 
-void gl3::camera::MoveKey(GLFWwindow*, const int key, int, const int action, int)
+void gl3::camera::move_key(GLFWwindow*, const int key, int, const int action, int)
 {
     if (action == GLFW_PRESS || action == GLFW_REPEAT)
     {
@@ -112,32 +116,32 @@ void gl3::camera::MoveKey(GLFWwindow*, const int key, int, const int action, int
         {
         case GLFW_KEY_W:
             {
-                Position += speed * Orientation;
+                position += speed * orientation;
                 break;
             }
         case GLFW_KEY_A:
             {
-                Position += speed * -glm::normalize(glm::cross(Orientation, Up));
+                position += speed * -glm::normalize(glm::cross(orientation, up));
                 break;
             }
         case GLFW_KEY_S:
             {
-                Position += speed * -Orientation;
+                position += speed * -orientation;
                 break;
             }
         case GLFW_KEY_D:
             {
-                Position += speed * glm::normalize(glm::cross(Orientation, Up));
+                position += speed * glm::normalize(glm::cross(orientation, up));
                 break;
             }
         case GLFW_KEY_SPACE:
             {
-                Position += speed * Up;
+                position += speed * up;
                 break;
             }
         case GLFW_KEY_LEFT_CONTROL:
             {
-                Position += speed * -Up;
+                position += speed * -up;
                 break;
             }
         default: break;

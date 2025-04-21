@@ -15,23 +15,26 @@ namespace gl3
     class camera
     {
     public:
-        glm::vec3 Position;
-        glm::vec3 Orientation = glm::vec3(0.0f, 0.0f, -1.0f);
-        glm::vec3 Up = glm::vec3(0.0f, 1.0f, 0.0f);
+        glm::vec3 position;
+        glm::vec3 orientation = glm::vec3(0.0f, 0.0f, -1.0f);
+        glm::vec3 up = glm::vec3(0.0f, 1.0f, 0.0f);
+        double last_update_time;
 
-        bool firstClick = true;
+        bool first_click = true;
 
-        int width, height;
+        int width;
+        int height;
 
-        float speed = 100.0f, sensitivity = 100.0f;
+        float speed = 100.0f;
+        float sensitivity = 100.0f;
 
-        camera(int width, int height, glm::vec3 Position);
+        camera(int width, int height, glm::vec3 position);
 
-        void Matrix(float FOVdeg, float nearPlane, float farPlane, gl3::shader_class& shader, const char* uniform);
+        void matrix(float fov_deg, float nearPlane, float farPlane, const gl3::shader_class& shader, const char* uniform) const;
 
-        void Inputs(GLFWwindow* window);
+        void inputs(GLFWwindow* window);
 
-        void MoveKey(GLFWwindow* window, int key, int scancode, int action, int mods);
+        void move_key(GLFWwindow* window, int key, int scancode, int action, int mods);
     };
 }
 

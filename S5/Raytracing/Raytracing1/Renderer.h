@@ -90,6 +90,7 @@ struct ShaderLocations {
     static constexpr int SAMPLE_RATE = 804;
     static constexpr int CSG_SPHERES = 805;
     static constexpr int RECURSION_DEPTH = 809;
+    static constexpr int USE_FRESNEL = 810;
 };
 
 

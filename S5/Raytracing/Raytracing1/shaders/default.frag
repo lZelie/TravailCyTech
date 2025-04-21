@@ -15,6 +15,7 @@ layout (location = 803) uniform int lighting_type;
 layout (location = 804) uniform int sample_rate;
 layout (location = 805) uniform vec4 roth_spheres[4];
 layout (location = 809) uniform uint recursion_depth;
+layout (location = 810) uniform bool use_fresnell;
 
 // Material properties (could be extended to have different materials per object)
 struct Material {
@@ -448,22 +449,37 @@ vec3 raycast(vec2 uv) {
                         current_ior[i] = eta_to;
 
                         // Calculate cosine of angle between ray and normal
-                        float cos_theta_i = abs(dot(-ray_dir[i], normal));
-                        float sin_theta = sqrt(1.0 - cos_theta_i * cos_theta_i);
-
-                        ray_dir[i] = refract(-view_dir, normal, eta);
+                        float cos_theta_i = abs(dot(-view_dir, normal));
+                        float r0 = pow((eta_from - eta_to) / (eta_from + eta_to), 2);
                         
-                        float cos_theta_t = abs(dot(-ray_dir[i], normal));
+                        vec3 refracted = refract(-view_dir, normal, eta);
+                        ray_pos[i] = intersect_point - normal * 1e-3f;
+
+                        float fresnel;
+                        if (use_fresnell) { 
+                            if (eta_from > eta_to){
+                                float sin_theta = sqrt(1.0 - cos_theta_i * cos_theta_i);
+                                bool total_internal_reflection = (eta_from / eta_to) * (eta_from / eta_to) * sin_theta >= 1.0;
+    
+                                if (total_internal_reflection) {
+                                    fresnel = 1.0f;
+                                }
+                                else {
+                                    float cos_theta_t = abs(dot(-refracted, normal));
+                                    fresnel = r0 + (1.0 - r0) * pow(1.0 - cos_theta_t, 5.0);
+                                }
+                            }
+                            else {
+                                fresnel = r0 + (1.0 - r0) * pow(1.0 - cos_theta_i, 5.0);
+                            } 
+                        }
                         
-                        bool total_internal_reflection = (eta_from / eta_to) * (eta_from / eta_to) * sin_theta >= 1.0;
+                        ray_dir[i] = refracted;
 
-                        float cos_theta = eta_from <= eta_to ? cos_theta_i : cos_theta_t; 
-                        // Calculate Fresnel term to determine reflection vs refraction ratio
-                        // Schlick's approximation for Fresnel equations
-                        float r0 = pow((current_ior[i] - 1.0) / (current_ior[i] + 1.0), 2);
-                        float fresnel = !total_internal_reflection ? r0 + (1.0 - r0) * pow(1.0 - abs(dot(-view_dir, normal)), 5.0) : 1.0f;
-
-                        float refraction_coef = material.refraction_coef * fresnel;
+                        float refraction_coef = material.refraction_coef - material.refraction_coef * fresnel;
+                        float reflection_coef = material.reflection_coef + material.refraction_coef * fresnel;
+                        
+                        has_reflection = reflection_coef > 0.0f;
 
                         // Handle both reflection and refraction (spawn additional ray if possible)
                         if (has_reflection && nb_rays < 16){
@@ -473,7 +489,7 @@ vec3 raycast(vec2 uv) {
                             ray_pos[nb_rays] = intersect_point + normal * 1e-3f;
 
                             // Calculate new ray's contribution based on reflection coefficient
-                            mask[nb_rays] = mask[i] * (material.reflection_coef);
+                            mask[nb_rays] = mask[i] * (reflection_coef);
                             
                             path_length[nb_rays] = path_length[i];
                             absorption_coef[nb_rays] = absorption_coef[i];
@@ -487,7 +503,7 @@ vec3 raycast(vec2 uv) {
                         }
 
                         // Scale current ray's contribution by refraction coefficient
-                        mask[i] *= material.refraction_coef;
+                        mask[i] *= refraction_coef;
                         // Add the direct lighting contribution to final color, scaled by current ray mask 
                         color += mask[i] * direct_lighting;
                     }
