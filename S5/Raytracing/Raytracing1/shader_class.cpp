@@ -32,7 +32,7 @@ gl3::shader_class::shader_class(const char *vertexFile, const char *fragmentFile
     const char *fragmentSource = fragmentCode.c_str();
 
     // Create Vertex Shader Object and get its reference
-    std::cout << "Compiling vertex shader: " << vertexSource << "\n";
+    std::cout << "Compiling vertex shader: " << vertexFile << "\n";
     GLuint vertexShader = glCreateShader(GL_VERTEX_SHADER);
     // Attach Vertex Shader source to the Vertex Shader Object
     glShaderSource(vertexShader, 1, &vertexSource, nullptr);
@@ -40,7 +40,7 @@ gl3::shader_class::shader_class(const char *vertexFile, const char *fragmentFile
     glCompileShader(vertexShader);
     compileErrors(vertexShader, "VERTEX");
     // Create Fragment Shader Object and get its reference
-    std::cout << "Compiling fragment shader: " << fragmentSource << "\n";
+    std::cout << "Compiling fragment shader: " << fragmentFile << "\n";
     GLuint fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
     // Attach Fragment Shader source to the Fragment Shader Object
     glShaderSource(fragmentShader, 1, &fragmentSource, nullptr);

@@ -1,21 +1,34 @@
 #version 430
 
-layout (location = 0) uniform int nbSpheres;
-layout (location = 1) uniform int nbPlanes;
-layout (location = 2) uniform int nbMeshTriangles;
-layout (location = 3) uniform float view[16];
-layout (location = 19) uniform vec4 spheres[256];
-layout (location = 276) uniform vec3 planes[256];
-layout (location = 534) uniform vec3 meshes[256];
+// Camera UBO
+layout (std140, binding = 0) uniform CameraBlock {
+    vec2 windowSize;
+    vec3 cameraPosition;
+    vec3 cameraTarget;
+    float cameraFov;
+} camera;
 
-layout (location = 800) uniform vec4 light;
-layout (location = 801) uniform vec3 light_color;
-layout (location = 802) uniform vec3 ambient_light;
-layout (location = 803) uniform int lighting_type;
-layout (location = 804) uniform int sample_rate;
-layout (location = 805) uniform vec4 roth_spheres[4];
-layout (location = 809) uniform uint recursion_depth;
-layout (location = 810) uniform bool use_fresnell;
+// Scene Objects UBO
+layout (std140, binding = 1) uniform ObjectsBlock {
+    vec4 spheres[256];
+    vec3 planes[256];// planes are stored as pairs (position, normal)
+    vec3 triangles[768];// triangles are stored as triplets of vertices
+    vec4 csgSpheres[4];// CSG operation spheres
+    int numSpheres;
+    int numPlanes;
+    int numTriangles;
+} objects;
+
+// Lighting UBO
+layout (std140, binding = 2) uniform LightingBlock {
+    vec4 lightPosition;// xyz position, w intensity
+    vec3 lightColor;
+    vec3 ambientLight;
+    int lightType;
+    int sampleRate;
+    uint recursionDepth;
+    bool use_fresnel;
+} lighting;
 
 // Material properties (could be extended to have different materials per object)
 struct Material {
@@ -79,7 +92,7 @@ float rayCSG(vec3 ray_pos, vec3 ray_dir, out vec3 intersect_point, out vec3 norm
 
 void main() {
     vec3 color = vec3(0.0);
-    int samples = max(1, sample_rate);
+    int samples = max(1, lighting.sampleRate);
 
     float step_size = 1.0 / samples;
 
@@ -88,12 +101,12 @@ void main() {
             vec2 offset = vec2(
             (float(x) + 0.5) * step_size - 0.5,
             (float(y) + 0.5) * step_size - 0.5
-            ) / vec2(view[0], view[1]);
+            ) / camera.windowSize;
 
-            vec2 sample_coord = gl_FragCoord.xy + offset * vec2(view[0], view[1]);
-            vec2 sample_uv = (sample_coord / vec2(view[0], view[1]) - 0.5) * 2.0;
+            vec2 sample_coord = gl_FragCoord.xy + offset * camera.windowSize;
+            vec2 sample_uv = (sample_coord / camera.windowSize - 0.5) * 2.0;
 
-            float aspect = view[0] / view[1];
+            float aspect = camera.windowSize.x / camera.windowSize.y;
             if (aspect >= 1.0) {
                 sample_uv.x *= aspect;
             } else {
@@ -110,30 +123,27 @@ void main() {
 
     // Output final color
     fColor = vec4(color, 1.0f);
-    //    
-    //    uv = compute_uv();
-    //    fColor = vec4(raycast(uv), 1.0f);
 }
 
 void compute_primary_ray(in vec2 uv, out vec3 ray_pos, out vec3 ray_dir){
-    vec3 from = vec3(view[2], view[3], view[4]);// Camera position
-    vec3 to = vec3(view[5], view[6], view[7]);// Camera target
-    float fovy = view[8];// Field of view
-    vec2 uv_size = get_uv_plane_size();// The size of the image in UV
+    vec3 from = camera.cameraPosition;
+    vec3 to = camera.cameraTarget;
+    float fovy = camera.cameraFov;
+    vec2 uv_size = get_uv_plane_size();
 
     // Construct the camera coordinate system
     vec3 forward = normalize(from - to);
     vec3 right = normalize(cross(vec3(0.0f, 1.0f, 0.0f), forward));
     vec3 up = cross(forward, right);
 
-    // Compute the distance ti the image plane
+    // Compute the distance to the image plane
     float dist = uv_size.y / tan(fovy / 2);
 
     // Construct a primary ray going through UV coordinate
     vec3 direction = uv.x * right + uv.y * up - dist * forward;
 
     ray_pos = from;
-    ray_dir = direction;
+    ray_dir = normalize(direction);
 }
 
 float ray_sphere(vec3 ray_pos, vec3 ray_dir, vec3 sphere_pos, float sphere_radius, out vec3 intersect_pt, out vec3 normal) {
@@ -244,9 +254,9 @@ float compute_nearest_intersection(vec3 ray_pos, vec3 ray_dir, out vec3 intersec
     bool hit = false;
 
     // Test intersection with sphere
-    for (int i = 0; i < nbSpheres && i < 256; i++){
-        vec3 sphere_pos = spheres[i].xyz;
-        float sphere_radius = spheres[i].w;
+    for (int i = 0; i < objects.numSpheres && i < 256; i++){
+        vec3 sphere_pos = objects.spheres[i].xyz;
+        float sphere_radius = objects.spheres[i].w;
         vec3 intersec_point_sphere;
         vec3 normal_sphere;
         float sphere_dist = ray_sphere(ray_pos, ray_dir, sphere_pos, sphere_radius, intersec_point_sphere, normal_sphere);
@@ -260,11 +270,10 @@ float compute_nearest_intersection(vec3 ray_pos, vec3 ray_dir, out vec3 intersec
         }
     }
 
-
-    // Test intersection with a ground plane
-    for (int i = 0; i < nbPlanes && i < 128; i++){
-        vec3 plane_pos = planes[i * 2];
-        vec3 plane_normal = planes[i * 2 + 1];
+    // Test intersection with planes
+    for (int i = 0; i < objects.numPlanes && i < 128; i++){
+        vec3 plane_pos = objects.planes[i * 2];
+        vec3 plane_normal = objects.planes[i * 2 + 1];
         vec3 intersec_point_plane;
         vec3 normal_plane;
         float plane_dist = ray_plane(ray_pos, ray_dir, plane_pos, plane_normal, intersec_point_plane, normal_plane);
@@ -278,11 +287,11 @@ float compute_nearest_intersection(vec3 ray_pos, vec3 ray_dir, out vec3 intersec
         }
     }
 
-    // Test intersection with a triangle
-    for (int i = 0; i < nbMeshTriangles && i < 85; i++){
-        vec3 p0 = meshes[i * 3];
-        vec3 p1 = meshes[i * 3 + 1];
-        vec3 p2 = meshes[i * 3 + 2];
+    // Test intersection with triangles
+    for (int i = 0; i < objects.numTriangles && i < 85; i++){
+        vec3 p0 = objects.triangles[i * 3];
+        vec3 p1 = objects.triangles[i * 3 + 1];
+        vec3 p2 = objects.triangles[i * 3 + 2];
         vec3 intersec_point_triangle;
         vec3 normal_triangle;
         float triangle_dist = ray_triangle(ray_pos, ray_dir, p0, p1, p2, intersec_point_triangle, normal_triangle);
@@ -309,12 +318,12 @@ float compute_nearest_intersection(vec3 ray_pos, vec3 ray_dir, out vec3 intersec
         dist = csg_dist;
     }
 
-    if (!hit) return -1.0;
+    if (!hit && csg_dist <= 0.0) return -1.0;
     return dist;
 }
 
 vec2 get_uv_plane_size() {
-    float aspect = view[0] / view[1];// width / height
+    float aspect = camera.windowSize.x / camera.windowSize.y;// width / height
 
     vec2 uv_size;
     if (aspect >= 1.0) {
@@ -330,10 +339,10 @@ vec2 get_uv_plane_size() {
 
 vec2 compute_uv(){
     // Get the aspect ratio (width / height)
-    float aspect = view[0] / view[1];
+    float aspect = camera.windowSize.x / camera.windowSize.y;
 
     // Calculate normalized device coordinates (NDC) in the range [-1, 1]
-    vec2 ndc = (gl_FragCoord.xy / vec2(view[0], view[1]) - 0.5) * 2.0;
+    vec2 ndc = (gl_FragCoord.xy / camera.windowSize - 0.5) * 2.0;
 
     // Scale coordinates so the shorter dimension has length 1 and
     // aspect ratio is maintained, ensuring a perfect circle
@@ -345,6 +354,9 @@ vec2 compute_uv(){
         return vec2(ndc.x, ndc.y / aspect);
     }
 }
+
+// The rest of the implementation follows the same pattern as the original shader
+// We just need to adapt references to use our UBO structures
 
 vec3 raycast(vec2 uv) {
     // Array to store ray positions for primary and secondary rays
@@ -383,10 +395,9 @@ vec3 raycast(vec2 uv) {
     vec3 absorption_coef[16];
     absorption_coef[0] = vec3(0.0);
 
-
     // Main ray tracing loop - iterates up to maximum recursion depth
     int depth = 0;
-    for (; depth <= recursion_depth; depth++) {
+    for (; depth <= lighting.recursionDepth; depth++) {
         // Process all active rays
         for (uint i = 0; i < nb_rays; i++){
             // Only process rays that haven't been terminated
@@ -408,16 +419,16 @@ vec3 raycast(vec2 uv) {
                     vec3 view_dir = normalize(ray_pos[i] - intersect_point);
 
                     // Calculate direct lighting at intersection point
-                    vec3 direct_lighting = calculate_lighting(intersect_point, normal, view_dir, material, light_color);
+                    vec3 direct_lighting = calculate_lighting(intersect_point, normal, view_dir, material, lighting.lightColor);
 
                     // Check if material has refraction or reflection properties
                     bool has_refraction = material.refraction_coef > 0.0f;
                     bool has_reflection = material.reflection_coef > 0.0f;
 
                     // Handle refraction (if material refracts and we haven't hit recursion limit)
-                    if (has_refraction && depth < recursion_depth) {
+                    if (has_refraction && depth < lighting.recursionDepth) {
                         float eta;
-                        // If ray is enterinr an object, flip the normal to point inward
+                        // If ray is entering an object, flip the normal to point inward
                         bool is_entering = dot(-view_dir, normal) < 0.0f;
                         // Calculate refraction ratio based on current IOR and material's IOR
                         float eta_from = current_ior[i];
@@ -426,7 +437,7 @@ vec3 raycast(vec2 uv) {
                             eta_to = material.refraction_index;
                             eta_stack[i][nb_eta[i]] = eta_to;
                             nb_eta[i]++;
-                            
+
                             path_length[i] = dist;
                         }
                         else {
@@ -436,11 +447,11 @@ vec3 raycast(vec2 uv) {
                             mask[i] *= absorption;
 
                             path_length[i] = 0.0f;
-                            if(nb_eta[i] > 0){
+                            if (nb_eta[i] > 0){
                                 nb_eta[i]--;
                                 eta_to = eta_stack[i][nb_eta[i]];
                             }
-                            else{
+                            else {
                                 eta_from = material.refraction_index;
                                 eta_to = 1.0f;
                             }
@@ -451,16 +462,16 @@ vec3 raycast(vec2 uv) {
                         // Calculate cosine of angle between ray and normal
                         float cos_theta_i = abs(dot(-view_dir, normal));
                         float r0 = pow((eta_from - eta_to) / (eta_from + eta_to), 2);
-                        
+
                         vec3 refracted = refract(-view_dir, normal, eta);
                         ray_pos[i] = intersect_point - normal * 1e-3f;
 
                         float fresnel;
-                        if (use_fresnell) { 
+                        if (lighting.use_fresnel) {
                             if (eta_from > eta_to){
                                 float sin_theta = sqrt(1.0 - cos_theta_i * cos_theta_i);
                                 bool total_internal_reflection = (eta_from / eta_to) * (eta_from / eta_to) * sin_theta >= 1.0;
-    
+
                                 if (total_internal_reflection) {
                                     fresnel = 1.0f;
                                 }
@@ -471,14 +482,14 @@ vec3 raycast(vec2 uv) {
                             }
                             else {
                                 fresnel = r0 + (1.0 - r0) * pow(1.0 - cos_theta_i, 5.0);
-                            } 
+                            }
                         }
-                        
+
                         ray_dir[i] = refracted;
 
                         float refraction_coef = material.refraction_coef - material.refraction_coef * fresnel;
                         float reflection_coef = material.reflection_coef + material.refraction_coef * fresnel;
-                        
+
                         has_reflection = reflection_coef > 0.0f;
 
                         // Handle both reflection and refraction (spawn additional ray if possible)
@@ -490,7 +501,7 @@ vec3 raycast(vec2 uv) {
 
                             // Calculate new ray's contribution based on reflection coefficient
                             mask[nb_rays] = mask[i] * (reflection_coef);
-                            
+
                             path_length[nb_rays] = path_length[i];
                             absorption_coef[nb_rays] = absorption_coef[i];
 
@@ -541,7 +552,6 @@ vec3 raycast(vec2 uv) {
 
 // Determine if a point is in shadow
 float calculate_shadows(vec3 position, vec3 light_dir, float light_distance) {
-    //    return false;
     vec3 shadow_intersec;
     vec3 shadow_normal;
     int shadow_obj_id, shadow_obj_type;
@@ -553,24 +563,28 @@ float calculate_shadows(vec3 position, vec3 light_dir, float light_distance) {
     float shadow_dist = compute_nearest_intersection(offset_pos, light_dir, shadow_intersec, shadow_normal, shadow_obj_id, shadow_obj_type);
 
     // If there's an intersection and it's closer than the light, the point is in shadow
-    return (shadow_dist > 0.0 && shadow_dist < light_distance) ? distance(position, shadow_intersec) / distance(position, light.xyz) : 1.0;
+    return (shadow_dist > 0.0 && shadow_dist < light_distance) ?
+    distance(position, shadow_intersec) / distance(position, lighting.lightPosition.xyz) : 1.0;
 }
 
-vec3 calculate_lighting(vec3 position, vec3 normal, vec3 view_dir, Material material, vec3 light_color){
+vec3 calculate_lighting(vec3 position, vec3 normal, vec3 view_dir, Material material, vec3 light_color) {
     // Ambient
-    vec3 ambient = material.ambient * ambient_light;
+    vec3 ambient = material.ambient * lighting.ambientLight;
 
-    vec3 light_pos = light.xyz;
-    float light_intensity = light.w;
+    vec3 light_pos = lighting.lightPosition.xyz;
+    float light_intensity = lighting.lightPosition.w;
 
     vec3 light_dir = normalize(light_pos - position);
     float light_distance = distance(light_pos, position);
+
     // Diffuse
     float diff = max(dot(normal, light_dir), 0.0);
     vec3 diffuse = diff * material.diffuse * vec3(1.0);
 
-    // Specular
-    vec3 specular = lighting_type == 0 ? phong_brdf(light_dir, normal, view_dir, material): blinn_brdf(light_dir, normal, view_dir, material);
+    // Specular - choose between Phong and Blinn-Phong based on lighting type
+    vec3 specular = lighting.lightType == 0 ?
+    phong_brdf(light_dir, normal, view_dir, material) :
+    blinn_brdf(light_dir, normal, view_dir, material);
 
     // Attenuation (light falloff with distance)
     float attenuation = 1.0 / (1.0 + 0.09 * light_distance + 0.032 * light_distance * light_distance);
@@ -581,14 +595,14 @@ vec3 calculate_lighting(vec3 position, vec3 normal, vec3 view_dir, Material mate
     return result;
 }
 
-vec3 phong_brdf(vec3 light_dir, vec3 normal, vec3 view_dir, Material material){
+vec3 phong_brdf(vec3 light_dir, vec3 normal, vec3 view_dir, Material material) {
     vec3 reflect_dir = reflect(-light_dir, normal);
     float spec = pow(max(dot(view_dir, reflect_dir), 0.0), material.shininess);
     vec3 specular = spec * material.specular;
     return specular;
 }
 
-vec3 blinn_brdf(vec3 light_dir, vec3 normal, vec3 view_dir, Material material){
+vec3 blinn_brdf(vec3 light_dir, vec3 normal, vec3 view_dir, Material material) {
     vec3 halfway = normalize(light_dir + view_dir);
     float spec = pow(max(dot(halfway, normal), 0.0), material.shininess);
     vec3 specular = spec * material.specular;
@@ -608,7 +622,7 @@ Material get_material(int object_type, int object_id, vec3 position) {
         // Vary material based on sphere ID for visual interest
         int material_variant = object_id % 5;
 
-        switch (material_variant){
+        switch (material_variant) {
             case 0:
             // Plastic-like material
             mat.ambient = vec3(0.1, 0.1, 0.1);
@@ -619,7 +633,7 @@ Material get_material(int object_type, int object_id, vec3 position) {
             mat.refraction_coef = 0.0f;
             break;
             case 1:
-            mat.ambient = ambient_light;
+            mat.ambient = lighting.ambientLight;
             mat.diffuse = vec3(.0f, .0f, .0f);
             mat.specular = vec3(0.9, 0.9, 0.9);
             mat.shininess = 128.0;
@@ -645,7 +659,7 @@ Material get_material(int object_type, int object_id, vec3 position) {
             mat.refraction_index = 1.0f;
             break;
             default :
-            // Nix
+            // Mix
             mat.ambient = vec3(0.1, 0.1, 0.1);
             mat.diffuse = vec3(.0, .0, .0);// white
             mat.specular = vec3(1.0, 1.0, 1.0);
@@ -659,8 +673,8 @@ Material get_material(int object_type, int object_id, vec3 position) {
     else if (object_type == 1) { // Plane
         // Create checkerboard pattern based on the position
         // Get plane data to determine orientation
-        vec3 plane_pos = planes[object_id * 2];
-        vec3 plane_normal = normalize(planes[object_id * 2 + 1]);
+        vec3 plane_pos = objects.planes[object_id * 2];
+        vec3 plane_normal = normalize(objects.planes[object_id * 2 + 1]);
 
         // Create a coordinate system for the plane
         vec3 u_axis = normalize(cross(plane_normal, abs(plane_normal.y) < 0.999 ? vec3(0, 1, 0) : vec3(1, 0, 0)));
@@ -688,7 +702,7 @@ Material get_material(int object_type, int object_id, vec3 position) {
             mat.diffuse = vec3(0.9, 0.9, 0.9);// White
         }
     }
-    else if (object_type == 2){ // Triangle/Mesh
+    else if (object_type == 2) { // Triangle/Mesh
         mat.ambient = vec3(0.1, 0.1, 0.1);
         mat.diffuse = vec3(0., 0., 0.);// No
         mat.specular = vec3(0.5, 0.5, 0.5);
@@ -771,37 +785,33 @@ Roth unionCSG(Roth roth1, Roth roth2) {
     int inside_count = 0;
     while (i < roth1.nb_hits && j < roth2.nb_hits && result.nb_hits < 8) {
         if (roth1.hits[i].distance < roth2.hits[j].distance) {
-            if (i % 2 != 0){
-                if (inside_count == 1){
+            if (i % 2 != 0) {
+                if (inside_count == 1) {
                     result.hits[result.nb_hits] = roth1.hits[i];
                     result.nb_hits++;
-
                 }
                 inside_count--;
             }
             else {
-                if (inside_count == 0){
+                if (inside_count == 0) {
                     result.hits[result.nb_hits] = roth1.hits[i];
                     result.nb_hits++;
-
                 }
                 inside_count++;
             }
             i++;
         } else {
-            if (j % 2 != 0){
-                if (inside_count == 1){
+            if (j % 2 != 0) {
+                if (inside_count == 1) {
                     result.hits[result.nb_hits] = roth2.hits[j];
                     result.nb_hits++;
-
                 }
                 inside_count--;
             }
             else {
-                if (inside_count == 0){
+                if (inside_count == 0) {
                     result.hits[result.nb_hits] = roth2.hits[j];
                     result.nb_hits++;
-
                 }
                 inside_count++;
             }
@@ -837,37 +847,33 @@ Roth intersectionCSG(Roth roth1, Roth roth2, vec3 ray_dir) {
     int inside_count = 0;
     while (i < roth1.nb_hits && j < roth2.nb_hits && result.nb_hits < 8) {
         if (roth1.hits[i].distance < roth2.hits[j].distance) {
-            if (i % 2 != 0){
-                if (inside_count == 2){
+            if (i % 2 != 0) {
+                if (inside_count == 2) {
                     result.hits[result.nb_hits] = roth1.hits[i];
                     result.nb_hits++;
-
                 }
                 inside_count--;
             }
             else {
-                if (inside_count == 1){
+                if (inside_count == 1) {
                     result.hits[result.nb_hits] = roth1.hits[i];
                     result.nb_hits++;
-
                 }
                 inside_count++;
             }
             i++;
         } else {
-            if (j % 2 != 0){
-                if (inside_count == 2){
+            if (j % 2 != 0) {
+                if (inside_count == 2) {
                     result.hits[result.nb_hits] = roth2.hits[j];
                     result.nb_hits++;
-
                 }
                 inside_count--;
             }
             else {
-                if (inside_count == 1){
+                if (inside_count == 1) {
                     result.hits[result.nb_hits] = roth2.hits[j];
                     result.nb_hits++;
-
                 }
                 inside_count++;
             }
@@ -901,8 +907,6 @@ Roth complementCSG(Roth roth) {
     // Swap entry and exit points by reversing the array
     for (int i = 0; i < roth.nb_hits; i++) {
         result.hits[i] = roth.hits[roth.nb_hits - 1 - i];
-        // Invert normal for all hit points
-        //        result.hits[i].surface_normal = -result.hits[i].surface_normal;
     }
 
     return result;
@@ -917,17 +921,17 @@ Roth differenceCSG(Roth roth1, Roth roth2, vec3 ray_dir) {
 // Main CSG ray function that performs (Sphere1 ∩ Sphere2) + Sphere3) – Sphere4
 float rayCSG(vec3 ray_pos, vec3 ray_dir, out vec3 intersect_point, out vec3 normal, out int object_id, out int object_type) {
     // Get sphere data from uniform array
-    vec3 sphere1_pos = roth_spheres[0].xyz;
-    float sphere1_radius = roth_spheres[0].w;
+    vec3 sphere1_pos = objects.csgSpheres[0].xyz;
+    float sphere1_radius = objects.csgSpheres[0].w;
 
-    vec3 sphere2_pos = roth_spheres[1].xyz;
-    float sphere2_radius = roth_spheres[1].w;
+    vec3 sphere2_pos = objects.csgSpheres[1].xyz;
+    float sphere2_radius = objects.csgSpheres[1].w;
 
-    vec3 sphere3_pos = roth_spheres[2].xyz;
-    float sphere3_radius = roth_spheres[2].w;
+    vec3 sphere3_pos = objects.csgSpheres[2].xyz;
+    float sphere3_radius = objects.csgSpheres[2].w;
 
-    vec3 sphere4_pos = roth_spheres[3].xyz;
-    float sphere4_radius = roth_spheres[3].w;
+    vec3 sphere4_pos = objects.csgSpheres[3].xyz;
+    float sphere4_radius = objects.csgSpheres[3].w;
 
     // Calculate CSG operations step by step
     // 1. Get intersections with each sphere

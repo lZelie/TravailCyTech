@@ -1,11 +1,11 @@
-#include "Renderer.h"
+#include "renderer.h"
 
 int main() {
-    Renderer renderer;
+    gl3::renderer renderer;
     
     // Main render loop
-    while (!renderer.shouldClose()) {
-        renderer.renderFrame();
+    while (!renderer.should_close()) {
+        renderer.render_frame();
     }
     
     return 0;
