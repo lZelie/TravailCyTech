@@ -1,15 +1,19 @@
 # Raytracing
 
-Pour compiler :
+Pour compiler : (Cmake, Ninja, Mingw-w64)
 
+Depuis la racine du projet :
 ```bash
-cmake.exe --build cmake-build-debug --target Raytracing1 -j 10
+mkdir build
+cd build
+cmake .. -G "Ninja" -DCMAKE_C_COMPILER=gcc -DCMAKE_CXX_COMPILER=g++
+cmake --build . --config Release -j 10
 ```
 
-Et pour exécuter (bash uniquement) :
+Et pour exécuter (Depuis le dossier build) :
 
 ````bash
-./cmake-build-debug/Raytracing1.exe
+./Raytracing1
 ````
 
 ## Ce qui est fait

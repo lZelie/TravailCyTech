@@ -1,3 +1,4 @@
 external/
 cmake-build-debug/
+cmake-build-release/
 /imgui.ini
