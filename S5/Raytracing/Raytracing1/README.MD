@@ -31,7 +31,8 @@ Et pour exécuter (bash uniquement) :
 - **Soft shadows** Très laggy, mais fonctionnel. Requiert un sample rate élevé pour un rendu correct. 
 - **Glossy Reflection** Requiert antialiasing.
 - **Motion blur**
+- **Depth-of-Field**
 
 ## Ce qui reste à faire **TODO**
 
-- **Depth-of-Field**
+- Rien :)

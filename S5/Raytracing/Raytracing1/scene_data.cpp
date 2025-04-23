@@ -98,7 +98,10 @@ void scene_data::reset_to_default()
     camera.target = glm::vec3(0.0f, 0.0f, 0.0f);
     camera.fov = CAMERA_FOV;
     camera.exposure_time = 1.0f;
-    camera.time_samples = 8;
+    camera.time_samples = 1;
+
+    camera.focal_distance = 15.0f;
+    camera.aperture_size = 0.3f;  // A moderate DOF effect
 
     // Reset object counters
     objects.num_spheres = 5;

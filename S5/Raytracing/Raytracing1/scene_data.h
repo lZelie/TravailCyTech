@@ -32,6 +32,8 @@ public:
         float fov;
         float exposure_time;
         int time_samples;
+        float focal_distance;
+        float aperture_size;        
     };
 
     // Structure for scene objects
@@ -153,7 +155,7 @@ public:
         unsigned int recursion_depth;
         bool use_fresnel = false;
         float light_radius = 1.0f;
-        int shadow_samples = 8;
+        int shadow_samples = 1;
     };
 
     scene_data();

@@ -277,6 +277,36 @@ void gl3::renderer::render_ui()
                 cam.time_samples = time_samples;
             }
 
+            // Depth of Field controls
+            if (float focal_distance = cam.focal_distance; ImGui::SliderFloat(
+                "Focal Distance", &focal_distance, 0.1f, 100.0f))
+            {
+                cam.focal_distance = focal_distance;
+            }
+            ImGui::Text("Distance at which objects appear in perfect focus");
+
+            if (float aperture_size = cam.aperture_size; ImGui::SliderFloat(
+                "Aperture Size", &aperture_size, 0.0f, 2.0f))
+            {
+                cam.aperture_size = aperture_size;
+            }
+            ImGui::Text("0 = Everything in focus, higher = more blur");
+
+            // Add a "Focus on Closest" button
+            if (ImGui::Button("Focus on Closest Object (Only for spheres)")) {
+                // Calculate the distance to the closest object or scene center
+                auto closest_pos = glm::vec3(FLT_MAX);
+                for (int i = 0; i < scene_data.get_objects().num_spheres; i++)
+                {
+                    const auto sphere_pos = scene_data.get_objects().spheres[i].position;
+                    if (glm::distance(sphere_pos, cam.position) < glm::distance(closest_pos, cam.position))
+                    {
+                        closest_pos = sphere_pos;
+                    }
+                }
+                cam.focal_distance = glm::length(closest_pos - cam.position);
+            }
+
             ImGui::Text("Controls: Use WASD to move camera when in camera mode");
             ImGui::Text("Press C to toggle camera mode");
 

@@ -8,6 +8,8 @@ layout (std140, binding = 0) uniform CameraBlock {
     float cameraFov;
     float exposure_time;
     int time_samples;
+    float focalDistance;
+    float apertureSize;
 } camera;
 
 // Scene Objects UBO
@@ -120,6 +122,30 @@ float random() {
     return abs(fract(float(seed) / 3141.592653589793238));
 }
 
+// Function to create a random direction in the hemisphere around a normal
+vec3 random_hemisphere_direction(vec3 normal) {
+    // Generate random point on sphere
+    float theta = 2.0f * 3.14159265359f * random();
+    float phi = acos(2.0f * random() - 1.0f);
+
+    // Convert to Cartesian coordinates
+    vec3 random_dir = vec3(sin(phi) * cos(theta), sin(phi) * sin(phi), cos(phi));
+
+    // Make sure it's in the right hemisphere
+    if(dot(random_dir, normal) < 0.0f) {
+        random_dir = -random_dir;
+    }
+
+    return normalize(random_dir);
+}
+
+// Function to generate a random point on a disk
+vec2 random_disk() {
+    float r = sqrt(random());
+    float theta = 2.0 * 3.14159265359 * random();
+    return vec2(r * cos(theta), r * sin(theta));
+}
+
 void main() {
     seed = int(gl_FragCoord.x) + int(camera.windowSize.x) * int(gl_FragCoord.y);
     
@@ -172,10 +198,27 @@ void compute_primary_ray(in vec2 uv, out vec3 ray_pos, out vec3 ray_dir){
     float dist = uv_size.y / tan(fovy / 2);
 
     // Construct a primary ray going through UV coordinate
-    vec3 direction = uv.x * right + uv.y * up - dist * forward;
+    vec3 direction = normalize(uv.x * right + uv.y * up - dist * forward);
 
-    ray_pos = from;
-    ray_dir = normalize(direction);
+    // If aperture size is near zero, use a pinhole camera model
+    if (camera.apertureSize < 0.001) {
+        ray_pos = from;
+        ray_dir = direction;
+        return;
+    }
+
+    // Calculate point on focal plane
+    vec3 focal_point = from + direction * camera.focalDistance;
+
+    // Generate random offset on lens based on aperture size
+    vec2 lens_offset = random_disk() * camera.apertureSize;
+
+    // Offset the ray origin by the lens sample
+    vec3 lens_pos = from + lens_offset.x * right + lens_offset.y * up;
+
+    // Update the ray direction to go through the focal point
+    ray_pos = lens_pos;
+    ray_dir = normalize(focal_point - lens_pos);
 }
 
 // Function to get a sphere position at a specific time
@@ -391,23 +434,6 @@ vec2 compute_uv(){
         // Height is larger, scale Y by aspect ratio
         return vec2(ndc.x, ndc.y / aspect);
     }
-}
-
-// Function to create a random direction in the hemisphere around a normal
-vec3 random_hemisphere_direction(vec3 normal) {
-    // Generate random point on sphere
-    float theta = 2.0f * 3.14159265359f * random();
-    float phi = acos(2.0f * random() - 1.0f);
-
-    // Convert to Cartesian coordinates
-    vec3 random_dir = vec3(sin(phi) * cos(theta), sin(phi) * sin(phi), cos(phi));
-
-    // Make sure it's in the right hemisphere
-    if(dot(random_dir, normal) < 0.0f) {
-        random_dir = -random_dir;
-    }
-    
-    return normalize(random_dir);
 }
 
 // Function to create a reflection direction with some randomness based on glossiness
