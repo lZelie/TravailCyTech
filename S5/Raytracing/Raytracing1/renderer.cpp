@@ -181,7 +181,22 @@ void gl3::renderer::render_ui()
             if (auto use_fresnel = lighting.use_fresnel; ImGui::Checkbox("Use Fresnel", &use_fresnel))
             {
                 lighting.use_fresnel = use_fresnel;
-            } 
+            }
+
+            // Soft shadows
+            ImGui::Text("Soft Shadows Settings");
+
+            // Light radius
+            if (float light_radius = lighting.light_radius; ImGui::SliderFloat("Light Radius", &light_radius, 0.0f, 10.0f))
+            {
+                lighting.light_radius = light_radius;
+            }
+
+            // Shadow samples
+            if (int shadow_samples = lighting.shadow_samples; ImGui::SliderInt("Shadow Samples", &shadow_samples, 1, 256))
+            {
+                lighting.shadow_samples = shadow_samples;
+            }
 
             ImGui::Separator();
 

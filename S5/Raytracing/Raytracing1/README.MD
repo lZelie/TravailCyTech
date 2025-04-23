@@ -28,10 +28,10 @@ Et pour exécuter (bash uniquement) :
 - **Refraction**
 - **Absorption**
 - **Fresnel** glitch avec la sphère creuse
+- **Soft shadows** Très laggy, mais fonctionnel. Requiert un sample rate élevé pour un rendu correct. 
 
 ## Ce qui reste à faire **TODO**
 
-- **Soft shadows**
 - **Glossy Reflection**
 - **Motion blur**
 - **Depth-of-Field**

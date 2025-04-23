@@ -90,6 +90,8 @@ public:
         int sample_rate;
         unsigned int recursion_depth;
         bool use_fresnel = false;
+        float light_radius = 1.0f;
+        int shadow_samples = 8;
     };
 
     scene_data();

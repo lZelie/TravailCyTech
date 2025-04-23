@@ -28,6 +28,8 @@ layout (std140, binding = 2) uniform LightingBlock {
     int sampleRate;
     uint recursionDepth;
     bool use_fresnel;
+    float light_radius;
+    int shadow_samples;
 } lighting;
 
 // Material properties (could be extended to have different materials per object)
@@ -90,7 +92,23 @@ Roth differenceCSG(Roth roth1, Roth roth2, vec3 ray_dir);
 Roth ray_sphere_roth(vec3 ray_pos, vec3 ray_dir, vec3 sphere_pos, float sphere_radius, int material_index);
 float rayCSG(vec3 ray_pos, vec3 ray_dir, out vec3 intersect_point, out vec3 normal, out int object_id, out int object_type);
 
+int seed;
+
+int xorshift(int value) {
+    value ^= value << 13;
+    value ^= value >> 17;
+    value ^= value << 5;
+    return value;
+}
+
+float random() {
+    seed = xorshift(seed);
+    return abs(fract(float(seed) / 3141.592653589793238));
+}
+
 void main() {
+    seed = int(gl_FragCoord.x) + int(camera.windowSize.x) * int(gl_FragCoord.y);
+    
     vec3 color = vec3(0.0);
     int samples = max(1, lighting.sampleRate);
 
@@ -552,19 +570,50 @@ vec3 raycast(vec2 uv) {
 
 // Determine if a point is in shadow
 float calculate_shadows(vec3 position, vec3 light_dir, float light_distance) {
-    vec3 shadow_intersec;
-    vec3 shadow_normal;
-    int shadow_obj_id, shadow_obj_type;
+    // Variables to store random sampling data
+    vec3 light_pos = lighting.lightPosition.xyz;
+    float light_radius = lighting.light_radius;
+    int shadow_samples = lighting.shadow_samples;
+    float shadow_intensity = 0.0f;
 
-    // Offset the ray origin slightly to avoid self-intersection
-    vec3 offset_pos = position + light_dir * 0.001;
+    // Create a coordinate system around the light direction
+    vec3 up = vec3(0.0f, 1.0f, 0.0f);
+    if (abs(dot(light_dir, up)) > 0.99f) {
+        up = vec3(1.0f, 0.0f, 0.0f);
+    }
+    vec3 right = normalize(cross(up, light_dir));
+    up = normalize(cross(light_dir, right));
 
-    // Check if there's any intersection between the point and the light
-    float shadow_dist = compute_nearest_intersection(offset_pos, light_dir, shadow_intersec, shadow_normal, shadow_obj_id, shadow_obj_type);
+    // Cast multiple shadow rays toward the light source
+    for (int i = 0; i < shadow_samples; i++) {
+        // Generate random points on disc around light
+        float radius = light_radius * sqrt(random());
+        float theta = 2.0f * 3.14159265389793238f * random();
 
-    // If there's an intersection and it's closer than the light, the point is in shadow
-    return (shadow_dist > 0.0 && shadow_dist < light_distance) ?
-    distance(position, shadow_intersec) / distance(position, lighting.lightPosition.xyz) : 1.0;
+        // Calculate offset point on light using disc sampling
+        vec3 offset = radius * (right * cos(theta) + up * sin(theta));
+        vec3 sample_light_pos = light_pos + offset;
+        vec3 sample_light_dir = normalize(sample_light_pos - position);
+        float sample_light_distance = distance(position, sample_light_pos);
+
+        // Offset the ray origin slightly to avoid self-intersection
+        vec3 offset_pos = position + sample_light_dir * 0.001f;
+
+        // Check for intersection between point and light sample
+        vec3 shadow_intersec;
+        vec3 shadow_normal;
+        int shadow_obj_id;
+        int shadow_obj_type;
+        
+        float shadow_dist = compute_nearest_intersection(offset_pos, sample_light_dir, shadow_intersec, shadow_normal, shadow_obj_id, shadow_obj_type);
+
+        // If no intersection or intersection is beyond light, count this ray as unoccluded
+        if (shadow_dist < 0.0f || shadow_dist > sample_light_distance) {
+            shadow_intensity += 1.0f;
+        }
+    }
+    
+    return shadow_intensity / float(shadow_samples);
 }
 
 vec3 calculate_lighting(vec3 position, vec3 normal, vec3 view_dir, Material material, vec3 light_color) {
