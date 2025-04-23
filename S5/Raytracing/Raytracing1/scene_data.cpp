@@ -42,7 +42,7 @@ void scene_data::initialize()
     // Create UBOs
     create_UBOs();
 
-    // Set up default scene
+    // Set up the default scene
     reset_to_default();
 
     // Update UBOs with initial data
@@ -147,6 +147,30 @@ void scene_data::reset_to_default()
     lighting.light_type = 0;
     lighting.sample_rate = 1;
     lighting.recursion_depth = 0;
+
+    // Reset materials to default
+    objects.sphere_materials[0] = {{0.8f, 0.2f, 0.2f}, {1.0f, 1.0f, 1.0f}, {0.1f, 0.1f, 0.1f}, 32.0f, 1.0f};
+    objects.sphere_materials[1] = {{0.0f, 0.0f, 0.0f}, {0.9f, 0.9f, 0.9f}, {0.1f, 0.1f, 0.1f}, 128.0f, 0.0f, 1.0f, 1.333f, {0.8, 0.0, 0.0}};
+    objects.sphere_materials[2] = {{0.0f, 0.0f, 0.0f}, {1.0f, 1.0f, 1.0f}, {0.1f, 0.1f, 0.1f}, 256.0f, 0.0f, 1.0f, 1.5f};
+    objects.sphere_materials[3] = {{0.0f, 0.0f, 0.0f}, {1.0f, 1.0f, 1.0f}, {0.1f, 0.1f, 0.1f}, 256.0f, 0.0f, 1.0f, 1.0f};
+    objects.sphere_materials[4] = {{0.0f, 0.0f, 0.0f}, {1.0f, 1.0f, 1.0f}, {0.1f, 0.1f, 0.1f}, 256.0f, 0.5f, 0.5f, 1.12f};
+
+    objects.plane_materials[0] = {};
+    
+    objects.triangle_materials[0] = {{0.0f, 0.0f, 0.0f}, {0.5f, 0.5f, 0.5f}, {0.1f, 0.1f, 0.1f}, 16.0f, 0.0f, 1.0f, 2.24f};
+    objects.triangle_materials[1] = {{0.0f, 0.0f, 0.0f}, {0.5f, 0.5f, 0.5f}, {0.1f, 0.1f, 0.1f}, 16.0f, 0.0f, 1.0f, 2.24f};
+    objects.triangle_materials[2] = {{0.0f, 0.0f, 0.0f}, {0.5f, 0.5f, 0.5f}, {0.1f, 0.1f, 0.1f}, 16.0f, 0.0f, 1.0f, 2.24f};
+    objects.triangle_materials[3] = {{0.0f, 0.0f, 0.0f}, {0.5f, 0.5f, 0.5f}, {0.1f, 0.1f, 0.1f}, 16.0f, 0.0f, 1.0f, 2.24f};
+    objects.triangle_materials[4] = {{0.0f, 0.0f, 0.0f}, {0.5f, 0.5f, 0.5f}, {0.1f, 0.1f, 0.1f}, 16.0f, 0.0f, 1.0f, 2.24f};
+    objects.triangle_materials[5] = {{0.0f, 0.0f, 0.0f}, {0.5f, 0.5f, 0.5f}, {0.1f, 0.1f, 0.1f}, 16.0f, 0.0f, 1.0f, 2.24f};
+    objects.triangle_materials[6] = {{0.0f, 0.0f, 0.0f}, {0.5f, 0.5f, 0.5f}, {0.1f, 0.1f, 0.1f}, 16.0f, 0.0f, 1.0f, 2.24f};
+    objects.triangle_materials[7] = {{0.0f, 0.0f, 0.0f}, {0.5f, 0.5f, 0.5f}, {0.1f, 0.1f, 0.1f}, 16.0f, 0.0f, 1.0f, 2.24f};
+
+    objects.csg_sphere_materials[0] = {{0.8f, 0.2f, 0.2f}, {1.0f, 1.0f, 1.0f}, {0.1f, 0.1f, 0.1f}, 32.0f};
+    objects.csg_sphere_materials[1] = {{0.8f, 0.2f, 0.2f}, {1.0f, 1.0f, 1.0f}, {0.1f, 0.1f, 0.1f}, 32.0f};
+    objects.csg_sphere_materials[2] = {{0.2f, 0.2f, 0.8f}, {1.0f, 1.0f, 1.0f}, {0.1f, 0.1f, 0.1f}, 32.0f};
+    objects.csg_sphere_materials[3] = {{0.2f, 0.8f, 0.2f}, {1.0f, 1.0f, 1.0f}, {0.1f, 0.1f, 0.1f}, 32.0f};
+    
 }
 
 void scene_data::add_sphere(const glm::vec3& position, const float radius)

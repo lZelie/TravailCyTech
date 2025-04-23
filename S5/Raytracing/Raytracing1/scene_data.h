@@ -5,11 +5,12 @@
 #include "glm/vec3.hpp"
 #include "glm/vec4.hpp"
 
-// Maximum number of objects in scene
+// Maximum number of objects in the scene
 constexpr int MAX_SPHERES = 256;
 constexpr int MAX_PLANES = 128;
 constexpr int MAX_TRIANGLES = 256;
 constexpr int MAX_CSG_SPHERES = 4;
+constexpr int MAX_MATERIALS = MAX_SPHERES + MAX_PLANES + MAX_TRIANGLES + MAX_CSG_SPHERES;
 
 // UBO binding points
 constexpr int CAMERA_UBO_BINDING = 0;
@@ -36,7 +37,11 @@ public:
     {
         glm::vec3 position;
         float radius;
-        sphere_data(const glm::vec3 position = glm::vec3(0.0f), const float radius = 0.0f): position(position), radius(radius) {}
+
+        sphere_data(const glm::vec3 position = glm::vec3(0.0f), const float radius = 0.0f): position(position),
+            radius(radius)
+        {
+        }
     };
 
     struct plane_data
@@ -45,7 +50,11 @@ public:
         float padding1{};
         glm::vec3 normal;
         float padding2{};
-        plane_data(const glm::vec3 position = glm::vec3(0.0f), const glm::vec3 normal = glm::vec3(0.0f)): position(position), normal(normal) {}
+
+        plane_data(const glm::vec3 position = glm::vec3(0.0f),
+                   const glm::vec3 normal = glm::vec3(0.0f)): position(position), normal(normal)
+        {
+        }
     };
 
     struct triangle_data
@@ -57,7 +66,10 @@ public:
         glm::vec3 v3;
         float padding3{};
 
-        triangle_data(const glm::vec3& v1 = glm::vec3(0.0f), const glm::vec3& v2 = glm::vec3(0.0f), const glm::vec3& v3 = glm::vec3(0.0f)): v1(v1),v2(v2),v3(v3){}
+        triangle_data(const glm::vec3& v1 = glm::vec3(0.0f), const glm::vec3& v2 = glm::vec3(0.0f),
+                      const glm::vec3& v3 = glm::vec3(0.0f)): v1(v1), v2(v2), v3(v3)
+        {
+        }
     };
 
     struct csg_sphere_data
@@ -65,7 +77,10 @@ public:
         glm::vec3 position;
         float radius;
 
-        csg_sphere_data(const glm::vec3& position = glm::vec3(0.0f), const float radius = 0.0f): position(position),radius(radius){}
+        csg_sphere_data(const glm::vec3& position = glm::vec3(0.0f), const float radius = 0.0f): position(position),
+            radius(radius)
+        {
+        }
     };
 
     struct scene_objects
@@ -77,6 +92,47 @@ public:
         int num_spheres{};
         int num_planes{};
         int num_triangles{};
+        int padding1{};
+
+        struct material
+        {
+            glm::vec3 diffuse;
+            float padding1{};
+            glm::vec3 specular;
+            float padding2{};
+            glm::vec3 ambient;
+            float shininess = 32.0f;
+            float reflection_coefficient = 0.0f;
+            float refraction_coefficient = 0.0f;
+            float refraction_index = 1.0f;
+            float padding4{};
+            glm::vec3 absorption;
+            float padding3{};
+
+            material(const glm::vec3& diffuse = glm::vec3(1.0f),
+                     const glm::vec3& specular = glm::vec3(1.0f),
+                     const glm::vec3& ambient = glm::vec3(1.0f),
+                     const float shininess = 32.0f,
+                     const float reflection_coefficient = 0.0f,
+                     const float refraction_coefficient = 0.0f,
+                     const float refraction_index = 1.0f,
+                     const glm::vec3& absorption = glm::vec3(0.0f))
+                : diffuse(diffuse),
+                  specular(specular),
+                  ambient(ambient),
+                  shininess(shininess),
+                  reflection_coefficient(reflection_coefficient),
+                  refraction_coefficient(refraction_coefficient),
+                  refraction_index(refraction_index),
+                  absorption(absorption)
+            {
+            }
+        };
+
+        std::array<material, MAX_SPHERES> sphere_materials{};
+        std::array<material, MAX_PLANES> plane_materials{};
+        std::array<material, MAX_TRIANGLES> triangle_materials{};
+        std::array<material, MAX_CSG_SPHERES> csg_sphere_materials{};
     };
 
     // Lighting data

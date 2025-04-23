@@ -9,6 +9,19 @@ layout (std140, binding = 0) uniform CameraBlock {
 } camera;
 
 // Scene Objects UBO
+
+// Material properties (could be extended to have different materials per object)
+struct Material {
+    vec3 diffuse;
+    vec3 specular;
+    vec3 ambient;
+    float shininess;
+    float reflection_coef;
+    float refraction_coef;
+    float refraction_index;
+    vec3 absorption;
+};
+
 layout (std140, binding = 1) uniform ObjectsBlock {
     vec4 spheres[256];
     vec3 planes[256];// planes are stored as pairs (position, normal)
@@ -17,6 +30,10 @@ layout (std140, binding = 1) uniform ObjectsBlock {
     int numSpheres;
     int numPlanes;
     int numTriangles;
+    Material sphere_materials[256];
+    Material plane_materials[128];
+    Material triangle_materials[256];
+    Material csg_sphere_materials[4];
 } objects;
 
 // Lighting UBO
@@ -31,18 +48,6 @@ layout (std140, binding = 2) uniform LightingBlock {
     float light_radius;
     int shadow_samples;
 } lighting;
-
-// Material properties (could be extended to have different materials per object)
-struct Material {
-    vec3 ambient;
-    vec3 diffuse;
-    vec3 specular;
-    float shininess;
-    float reflection_coef;
-    float refraction_coef;
-    float refraction_index;
-    vec3 absorption;
-};
 
 struct Hit {
     float distance;
@@ -668,56 +673,7 @@ Material get_material(int object_type, int object_id, vec3 position) {
 
     // Different material properties based on object type
     if (object_type == 0) { // Sphere
-        // Vary material based on sphere ID for visual interest
-        int material_variant = object_id % 5;
-
-        switch (material_variant) {
-            case 0:
-            // Plastic-like material
-            mat.ambient = vec3(0.1, 0.1, 0.1);
-            mat.diffuse = vec3(0.8, 0.2, 0.2);// Red
-            mat.specular = vec3(1.0, 1.0, 1.0);
-            mat.shininess = 32.0;
-            mat.reflection_coef = 1.0f;// Added reflection
-            mat.refraction_coef = 0.0f;
-            break;
-            case 1:
-            mat.ambient = lighting.ambientLight;
-            mat.diffuse = vec3(.0f, .0f, .0f);
-            mat.specular = vec3(0.9, 0.9, 0.9);
-            mat.shininess = 128.0;
-            mat.refraction_coef = 1.0f;
-            mat.refraction_index = 1.3333333f;
-            mat.absorption = vec3(0.8, 0.0, 0.0);
-            break;
-            case 2:
-            // Glass-like material
-            mat.ambient = vec3(0.1, 0.1, 0.1);
-            mat.diffuse = vec3(.0, .0, .0);// white
-            mat.specular = vec3(1.0, 1.0, 1.0);
-            mat.shininess = 256.0;
-            mat.refraction_coef = 1.0f;
-            mat.refraction_index = 1.5f;
-            break;
-            case 3:
-            mat.ambient = vec3(0.1, 0.1, 0.1);
-            mat.diffuse = vec3(.0, .0, .0);// white
-            mat.specular = vec3(1.0, 1.0, 1.0);
-            mat.shininess = 256.0;
-            mat.refraction_coef = 1.0f;
-            mat.refraction_index = 1.0f;
-            break;
-            default :
-            // Mix
-            mat.ambient = vec3(0.1, 0.1, 0.1);
-            mat.diffuse = vec3(.0, .0, .0);// white
-            mat.specular = vec3(1.0, 1.0, 1.0);
-            mat.shininess = 256.0;
-            mat.reflection_coef = 0.5f;
-            mat.refraction_coef = 0.5f;
-            mat.refraction_index = 1.12f;
-            break;
-        }
+        return objects.sphere_materials[object_id];
     }
     else if (object_type == 1) { // Plane
         // Create checkerboard pattern based on the position
@@ -752,31 +708,10 @@ Material get_material(int object_type, int object_id, vec3 position) {
         }
     }
     else if (object_type == 2) { // Triangle/Mesh
-        mat.ambient = vec3(0.1, 0.1, 0.1);
-        mat.diffuse = vec3(0., 0., 0.);// No
-        mat.specular = vec3(0.5, 0.5, 0.5);
-        mat.shininess = 16.0;
-        mat.refraction_index = 2.42f;
-        mat.refraction_coef = 1.0f;
+        return objects.triangle_materials[object_id];
     }
     else {
-        mat.ambient = vec3(0.1, 0.1, 0.1);
-        mat.specular = vec3(1.0, 1.0, 1.0);
-        mat.shininess = 32.0;
-        switch (object_id) {
-            case 0:
-            mat.diffuse = vec3(0.8, 0.2, 0.2);// Red
-            break;
-            case 1:
-            mat.diffuse = vec3(0.8, 0.2, 0.2);// Red
-            break;
-            case 2:
-            mat.diffuse = vec3(0.2, 0.2, 0.8);// Blue
-            break;
-            case 3:
-            mat.diffuse = vec3(0.2, 0.8, 0.2);// Green
-            break;
-        }
+        return objects.csg_sphere_materials[object_id];
     }
 
     return mat;

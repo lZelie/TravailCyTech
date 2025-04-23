@@ -39,7 +39,8 @@ void gl3::renderer::init_imgui()
     // Setup Dear ImGui context
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
-    ImGuiIO& io = ImGui::GetIO(); (void)io;
+    ImGuiIO& io = ImGui::GetIO();
+    (void)io;
     io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
     io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;
 
@@ -58,7 +59,7 @@ void gl3::renderer::setup_callbacks()
     glfwSetWindowSizeCallback(window, [](GLFWwindow* win, int width, int height)
     {
         const auto renderer = static_cast<gl3::renderer*>(glfwGetWindowUserPointer(win));
-        renderer->scene_data.get_camera().window_size = { width, height };
+        renderer->scene_data.get_camera().window_size = {width, height};
     });
 
     // Keyboard input callback
@@ -80,13 +81,15 @@ void gl3::renderer::setup_callbacks()
         }
         if (key == GLFW_KEY_1 && action == GLFW_PRESS)
         {
-            renderer->scene_data.get_lighting().light_type = renderer->scene_data.get_lighting().light_type == 0 ? 1 : 0;
+            renderer->scene_data.get_lighting().light_type =
+                renderer->scene_data.get_lighting().light_type == 0 ? 1 : 0;
         }
         if (key == GLFW_KEY_KP_ADD && action == GLFW_PRESS)
         {
             renderer->scene_data.get_lighting().recursion_depth++;
         }
-        if (key == GLFW_KEY_KP_SUBTRACT && action == GLFW_PRESS && renderer->scene_data.get_lighting().recursion_depth > 0)
+        if (key == GLFW_KEY_KP_SUBTRACT && action == GLFW_PRESS && renderer->scene_data.get_lighting().recursion_depth >
+            0)
         {
             renderer->scene_data.get_lighting().recursion_depth--;
         }
@@ -139,7 +142,8 @@ void gl3::renderer::render_ui()
             auto& lighting = scene_data.get_lighting();
 
             // Light position
-            if (glm::vec3 light_pos = {lighting.light_position}; ImGui::DragFloat3("Light Position", glm::value_ptr(light_pos), 0.1f))
+            if (glm::vec3 light_pos = {lighting.light_position}; ImGui::DragFloat3(
+                "Light Position", glm::value_ptr(light_pos), 0.1f))
             {
                 lighting.light_position.x = light_pos.x;
                 lighting.light_position.y = light_pos.y;
@@ -147,7 +151,8 @@ void gl3::renderer::render_ui()
             }
 
             // Light intensity
-            if (float light_intensity = lighting.light_position.w; ImGui::SliderFloat("Light Intensity", &light_intensity, 0.0f, 2.0f))
+            if (float light_intensity = lighting.light_position.w; ImGui::SliderFloat(
+                "Light Intensity", &light_intensity, 0.0f, 2.0f))
             {
                 lighting.light_position.w = light_intensity;
             }
@@ -160,7 +165,8 @@ void gl3::renderer::render_ui()
 
             // Light type (Phong or Blinn-Phong)
             constexpr std::array<const char*, 2> light_types = {"Phong", "Blinn-Phong"};
-            if (int light_type = lighting.light_type; ImGui::Combo("Lighting Type", &light_type, light_types.data(), light_types.size()))
+            if (int light_type = lighting.light_type; ImGui::Combo("Lighting Type", &light_type, light_types.data(),
+                                                                   light_types.size()))
             {
                 lighting.light_type = light_type;
             }
@@ -172,7 +178,8 @@ void gl3::renderer::render_ui()
             }
 
             // Max recursion depth
-            if (auto recursion_depth = static_cast<int>(lighting.recursion_depth); ImGui::SliderInt("Recursion Depth", &recursion_depth, 0, 8))
+            if (auto recursion_depth = static_cast<int>(lighting.recursion_depth); ImGui::SliderInt(
+                "Recursion Depth", &recursion_depth, 0, 8))
             {
                 lighting.recursion_depth = recursion_depth;
             }
@@ -187,13 +194,15 @@ void gl3::renderer::render_ui()
             ImGui::Text("Soft Shadows Settings");
 
             // Light radius
-            if (float light_radius = lighting.light_radius; ImGui::SliderFloat("Light Radius", &light_radius, 0.0f, 10.0f))
+            if (float light_radius = lighting.light_radius; ImGui::SliderFloat(
+                "Light Radius", &light_radius, 0.0f, 10.0f))
             {
                 lighting.light_radius = light_radius;
             }
 
             // Shadow samples
-            if (int shadow_samples = lighting.shadow_samples; ImGui::SliderInt("Shadow Samples", &shadow_samples, 1, 256))
+            if (int shadow_samples = lighting.shadow_samples; ImGui::SliderInt(
+                "Shadow Samples", &shadow_samples, 1, 256))
             {
                 lighting.shadow_samples = shadow_samples;
             }
@@ -208,7 +217,8 @@ void gl3::renderer::render_ui()
             {
                 ImGui::PushID(i);
 
-                if (std::string label = std::format("CSG Sphere {}", std::to_string(i + 1)); ImGui::TreeNode(label.c_str()))
+                if (std::string label = std::format("CSG Sphere {}", std::to_string(i + 1)); ImGui::TreeNode(
+                    label.c_str()))
                 {
                     glm::vec3 pos = objects.csg_spheres[i].position;
                     float radius = objects.csg_spheres[i].radius;
@@ -237,7 +247,8 @@ void gl3::renderer::render_ui()
             auto& cam = scene_data.get_camera();
 
             // Camera position
-            if (glm::vec3 camera_position = cam.position; ImGui::DragFloat3("Position", glm::value_ptr(camera_position), 0.1f))
+            if (glm::vec3 camera_position = cam.position; ImGui::DragFloat3(
+                "Position", glm::value_ptr(camera_position), 0.1f))
             {
                 cam.position = camera_position;
             }
@@ -253,10 +264,10 @@ void gl3::renderer::render_ui()
             {
                 cam.fov = fov;
             }
-            
+
             ImGui::Text("Controls: Use WASD to move camera when in camera mode");
             ImGui::Text("Press C to toggle camera mode");
-            
+
             ImGui::EndTabItem();
         }
 
@@ -281,7 +292,8 @@ void gl3::renderer::render_ui()
                 {
                     ImGui::PushID(i);
 
-                    if (std::string label = std::format("Sphere {}", std::to_string(i + 1)); ImGui::TreeNode(label.c_str()))
+                    if (std::string label = std::format("Sphere {}", std::to_string(i + 1)); ImGui::TreeNode(
+                        label.c_str()))
                     {
                         glm::vec3 pos = objects.spheres[i].position;
                         float radius = objects.spheres[i].radius;
@@ -312,7 +324,8 @@ void gl3::renderer::render_ui()
                 {
                     ImGui::PushID(i);
 
-                    if (std::string label = std::format("Plane {}", std::to_string(i + 1)); ImGui::TreeNode(label.c_str()))
+                    if (std::string label = std::format("Plane {}", std::to_string(i + 1)); ImGui::TreeNode(
+                        label.c_str()))
                     {
                         glm::vec3 pos = objects.planes[i].position;
                         glm::vec3 normal = objects.planes[i].normal;
@@ -325,6 +338,194 @@ void gl3::renderer::render_ui()
                         {
                             objects.planes[i].position = pos;
                             objects.planes[i].normal = glm::normalize(normal);
+                        }
+
+                        ImGui::TreePop();
+                    }
+
+                    ImGui::PopID();
+                }
+
+                ImGui::TreePop();
+            }
+
+            ImGui::EndTabItem();
+        }
+
+        // Materials tab
+        if (ImGui::BeginTabItem("Materials"))
+        {
+            auto& objects = scene_data.get_objects();
+
+            // Sphere materials
+            if (ImGui::TreeNode("Sphere materials"))
+            {
+                // Show sphere materials
+                for (int i = 0; i < std::min(objects.num_spheres, 6); i++)
+                {
+                    ImGui::PushID(i);
+                    if (std::string label = std::format("Sphere material {}", std::to_string(i + 1)); ImGui::TreeNode(
+                        label.c_str()))
+                    {
+                        auto& sphere_material = objects.sphere_materials[i];
+                        bool changed = false;
+
+                        changed |= ImGui::ColorEdit3("Diffuse", glm::value_ptr(sphere_material.diffuse));
+                        changed |= ImGui::ColorEdit3("Specular", glm::value_ptr(sphere_material.specular));
+                        changed |= ImGui::ColorEdit3("Ambient", glm::value_ptr(sphere_material.ambient));
+                        changed |= ImGui::DragFloat("Shininess", &sphere_material.shininess, 1.0f, 0.0f);
+                        changed |= ImGui::DragFloat("Reflection coefficient", &sphere_material.reflection_coefficient,
+                                                    0.01f, 0.0f, 1.0f);
+                        changed |= ImGui::DragFloat("Refraction coefficient", &sphere_material.refraction_coefficient,
+                                                    0.01f, 0.0f, 1.0f);
+                        changed |= ImGui::DragFloat("Refraction index", &sphere_material.refraction_index, 0.01f, 0.0f,
+                                                    10.0f);
+                        changed |= ImGui::ColorEdit3("Absorption", glm::value_ptr(sphere_material.absorption));
+
+                        if (changed)
+                        {
+                            sphere_material.reflection_coefficient = glm::clamp(
+                                sphere_material.reflection_coefficient, 0.0f, 1.0f);
+                            sphere_material.refraction_coefficient = glm::clamp(
+                                sphere_material.refraction_coefficient, 0.0f,
+                                1.0f - sphere_material.reflection_coefficient);
+
+                            objects.sphere_materials[i] = sphere_material;
+                        }
+
+                        ImGui::TreePop();
+                    }
+
+                    ImGui::PopID();
+                }
+
+                ImGui::TreePop();
+            }
+            // Planes materials
+            if (ImGui::TreeNode("Planes materials (Ignored for checkerboard)"))
+            {
+                // Show sphere materials
+                for (int i = 0; i < std::min(objects.num_planes, 6); i++)
+                {
+                    ImGui::PushID(i);
+                    if (std::string label = std::format("Planes material {}", std::to_string(i + 1)); ImGui::TreeNode(
+                        label.c_str()))
+                    {
+                        auto& plane_material = objects.plane_materials[i];
+                        bool changed = false;
+
+                        changed |= ImGui::ColorEdit3("Diffuse", glm::value_ptr(plane_material.diffuse));
+                        changed |= ImGui::ColorEdit3("Specular", glm::value_ptr(plane_material.specular));
+                        changed |= ImGui::ColorEdit3("Ambient", glm::value_ptr(plane_material.ambient));
+                        changed |= ImGui::DragFloat("Shininess", &plane_material.shininess, 1.0f, 0.0f);
+                        changed |= ImGui::DragFloat("Reflection coefficient", &plane_material.reflection_coefficient,
+                                                    0.01f, 0.0f, 1.0f);
+                        changed |= ImGui::DragFloat("Refraction coefficient", &plane_material.refraction_coefficient,
+                                                    0.01f, 0.0f, 1.0f);
+                        changed |= ImGui::DragFloat("Refraction index", &plane_material.refraction_index, 0.01f,
+                                                    0.0f, 10.0f);
+                        changed |= ImGui::ColorEdit3("Absorption", glm::value_ptr(plane_material.absorption));
+
+                        if (changed)
+                        {
+                            plane_material.reflection_coefficient = glm::clamp(
+                                plane_material.reflection_coefficient, 0.0f,
+                                1.0f - objects.plane_materials[i].refraction_coefficient);
+                            plane_material.refraction_coefficient = glm::clamp(
+                                plane_material.refraction_coefficient, 0.0f,
+                                1.0f - objects.plane_materials[i].reflection_coefficient);
+
+                            objects.plane_materials[i] = plane_material;
+                        }
+
+                        ImGui::TreePop();
+                    }
+
+                    ImGui::PopID();
+                }
+
+                ImGui::TreePop();
+            }
+            // Triangle materials
+            if (ImGui::TreeNode("Triangle materials"))
+            {
+                // Show sphere materials
+                for (int i = 0; i < std::min(objects.num_triangles, 6); i++)
+                {
+                    ImGui::PushID(i);
+                    if (std::string label = std::format("Triangle material {}", std::to_string(i + 1)); ImGui::TreeNode(
+                        label.c_str()))
+                    {
+                        auto& triangle_material = objects.triangle_materials[i];
+                        bool changed = false;
+
+                        changed |= ImGui::ColorEdit3("Diffuse", glm::value_ptr(triangle_material.diffuse));
+                        changed |= ImGui::ColorEdit3("Specular", glm::value_ptr(triangle_material.specular));
+                        changed |= ImGui::ColorEdit3("Ambient", glm::value_ptr(triangle_material.ambient));
+                        changed |= ImGui::DragFloat("Shininess", &triangle_material.shininess, 1.0f, 0.0f);
+                        changed |= ImGui::DragFloat("Reflection coefficient", &triangle_material.reflection_coefficient,
+                                                    0.01f, 0.0f, 1.0f);
+                        changed |= ImGui::DragFloat("Refraction coefficient", &triangle_material.refraction_coefficient,
+                                                    0.01f, 0.0f, 1.0f);
+                        changed |= ImGui::DragFloat("Refraction index", &triangle_material.refraction_index, 0.01f,
+                                                    0.0f, 10.0f);
+                        changed |= ImGui::ColorEdit3("Absorption", glm::value_ptr(triangle_material.absorption));
+
+                        if (changed)
+                        {
+                            triangle_material.reflection_coefficient = glm::clamp(
+                                triangle_material.reflection_coefficient, 0.0f,
+                                1.0f - objects.triangle_materials[i].refraction_coefficient);
+                            triangle_material.refraction_coefficient = glm::clamp(
+                                triangle_material.refraction_coefficient, 0.0f,
+                                1.0f - objects.triangle_materials[i].reflection_coefficient);
+
+                            objects.triangle_materials[i] = triangle_material;
+                        }
+
+                        ImGui::TreePop();
+                    }
+
+                    ImGui::PopID();
+                }
+
+                ImGui::TreePop();
+            }
+            // CSG Sphere materials
+            if (ImGui::TreeNode("CSG Sphere materials"))
+            {
+                // Show sphere materials
+                for (int i = 0; i < MAX_CSG_SPHERES; i++)
+                {
+                    ImGui::PushID(i);
+                    if (std::string label = std::format("CSG Sphere material {}", std::to_string(i + 1));
+                        ImGui::TreeNode(label.c_str()))
+                    {
+                        auto& csg_sphere_material = objects.csg_sphere_materials[i];
+                        bool changed = false;
+
+                        changed |= ImGui::ColorEdit3("Diffuse", glm::value_ptr(csg_sphere_material.diffuse));
+                        changed |= ImGui::ColorEdit3("Specular", glm::value_ptr(csg_sphere_material.specular));
+                        changed |= ImGui::ColorEdit3("Ambient", glm::value_ptr(csg_sphere_material.ambient));
+                        changed |= ImGui::DragFloat("Shininess", &csg_sphere_material.shininess, 1.0f, 0.0f);
+                        changed |= ImGui::DragFloat("Reflection coefficient",
+                                                    &csg_sphere_material.reflection_coefficient, 0.01f, 0.0f, 1.0f);
+                        changed |= ImGui::DragFloat("Refraction coefficient",
+                                                    &csg_sphere_material.refraction_coefficient, 0.01f, 0.0f, 1.0f);
+                        changed |= ImGui::DragFloat("Refraction index", &csg_sphere_material.refraction_index, 0.01f,
+                                                    0.0f, 10.0f);
+                        changed |= ImGui::ColorEdit3("Absorption", glm::value_ptr(csg_sphere_material.absorption));
+
+                        if (changed)
+                        {
+                            csg_sphere_material.reflection_coefficient = glm::clamp(
+                                csg_sphere_material.reflection_coefficient, 0.0f,
+                                1.0f - objects.csg_sphere_materials[i].refraction_coefficient);
+                            csg_sphere_material.refraction_coefficient = glm::clamp(
+                                csg_sphere_material.refraction_coefficient, 0.0f,
+                                1.0f - objects.csg_sphere_materials[i].reflection_coefficient);
+
+                            objects.csg_sphere_materials[i] = csg_sphere_material;
                         }
 
                         ImGui::TreePop();
@@ -392,7 +593,7 @@ gl3::renderer::renderer() :
 
     // Initialize ImGui
     init_imgui();
-    
+
     // Set default clear color
     glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
 }
@@ -411,7 +612,8 @@ gl3::renderer::~renderer()
 void gl3::renderer::render_frame()
 {
     // Update viewport and clear buffers
-    glViewport(0, 0, static_cast<int>(scene_data.get_camera().window_size.x), static_cast<int>(scene_data.get_camera().window_size.y));
+    glViewport(0, 0, static_cast<int>(scene_data.get_camera().window_size.x),
+               static_cast<int>(scene_data.get_camera().window_size.y));
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     // If in camera mode, update scene camera from the interactive camera
@@ -424,7 +626,7 @@ void gl3::renderer::render_frame()
 
     // Update UBOs with current scene data
     scene_data.update_UBOs();
-    
+
     // Activate shader and draw quad
     shader_program->activate();
     quad_VAO->bind();
