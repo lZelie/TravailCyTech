@@ -30,8 +30,8 @@ Et pour exécuter (bash uniquement) :
 - **Fresnel** glitch avec la sphère creuse
 - **Soft shadows** Très laggy, mais fonctionnel. Requiert un sample rate élevé pour un rendu correct. 
 - **Glossy Reflection** Requiert antialiasing.
+- **Motion blur**
 
 ## Ce qui reste à faire **TODO**
 
-- **Motion blur**
 - **Depth-of-Field**

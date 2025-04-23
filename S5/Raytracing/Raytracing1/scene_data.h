@@ -30,6 +30,8 @@ public:
         float padding2;
         glm::vec3 target;
         float fov;
+        float exposure_time;
+        int time_samples;
     };
 
     // Structure for scene objects
@@ -37,9 +39,11 @@ public:
     {
         glm::vec3 position;
         float radius;
+        glm::vec3 velocity;
+        float padding1{};
 
-        sphere_data(const glm::vec3 position = glm::vec3(0.0f), const float radius = 0.0f): position(position),
-            radius(radius)
+        sphere_data(const glm::vec3 position = glm::vec3(0.0f), const float radius = 0.0f, const glm::vec3 velocity = glm::vec3(0.0f)): position(position),
+            radius(radius), velocity(velocity)
         {
         }
     };

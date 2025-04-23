@@ -265,6 +265,18 @@ void gl3::renderer::render_ui()
                 cam.fov = fov;
             }
 
+            // Camera exposure time
+            if (float exposure_time = cam.exposure_time; ImGui::DragFloat("Exposure Time", &exposure_time, 0.1f))
+            {
+                cam.exposure_time = exposure_time;
+            }
+
+            // Camera time samples
+            if (int time_samples = cam.time_samples; ImGui::SliderInt("Time Samples", &time_samples, 1, 10))
+            {
+                cam.time_samples = time_samples;
+            }
+
             ImGui::Text("Controls: Use WASD to move camera when in camera mode");
             ImGui::Text("Press C to toggle camera mode");
 
@@ -297,14 +309,16 @@ void gl3::renderer::render_ui()
                     {
                         glm::vec3 pos = objects.spheres[i].position;
                         float radius = objects.spheres[i].radius;
+                        glm::vec3 velocity = objects.spheres[i].velocity;
 
                         bool changed = false;
                         changed |= ImGui::DragFloat3("Position", glm::value_ptr(pos), 0.1f);
                         changed |= ImGui::DragFloat("Radius", &radius, 0.1f, 5.0f);
+                        changed |= ImGui::DragFloat3("Velocity", glm::value_ptr(velocity), 0.1f);
 
                         if (changed)
                         {
-                            objects.spheres[i] = {pos, radius};
+                            objects.spheres[i] = {pos, radius, velocity};
                         }
 
                         ImGui::TreePop();
