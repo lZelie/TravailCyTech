@@ -105,7 +105,7 @@ public:
             float reflection_coefficient = 0.0f;
             float refraction_coefficient = 0.0f;
             float refraction_index = 1.0f;
-            float padding4{};
+            float glossiness = 0.0f;
             glm::vec3 absorption;
             float padding3{};
 
@@ -116,6 +116,7 @@ public:
                      const float reflection_coefficient = 0.0f,
                      const float refraction_coefficient = 0.0f,
                      const float refraction_index = 1.0f,
+                     const float glossiness = 0.0f,
                      const glm::vec3& absorption = glm::vec3(0.0f))
                 : diffuse(diffuse),
                   specular(specular),
@@ -124,6 +125,7 @@ public:
                   reflection_coefficient(reflection_coefficient),
                   refraction_coefficient(refraction_coefficient),
                   refraction_index(refraction_index),
+                  glossiness(glossiness),
                   absorption(absorption)
             {
             }

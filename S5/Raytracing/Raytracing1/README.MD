@@ -29,9 +29,9 @@ Et pour exécuter (bash uniquement) :
 - **Absorption**
 - **Fresnel** glitch avec la sphère creuse
 - **Soft shadows** Très laggy, mais fonctionnel. Requiert un sample rate élevé pour un rendu correct. 
+- **Glossy Reflection** Requiert antialiasing.
 
 ## Ce qui reste à faire **TODO**
 
-- **Glossy Reflection**
 - **Motion blur**
 - **Depth-of-Field**

@@ -374,12 +374,13 @@ void gl3::renderer::render_ui()
                         changed |= ImGui::ColorEdit3("Specular", glm::value_ptr(sphere_material.specular));
                         changed |= ImGui::ColorEdit3("Ambient", glm::value_ptr(sphere_material.ambient));
                         changed |= ImGui::DragFloat("Shininess", &sphere_material.shininess, 1.0f, 0.0f);
-                        changed |= ImGui::DragFloat("Reflection coefficient", &sphere_material.reflection_coefficient,
-                                                    0.01f, 0.0f, 1.0f);
-                        changed |= ImGui::DragFloat("Refraction coefficient", &sphere_material.refraction_coefficient,
-                                                    0.01f, 0.0f, 1.0f);
-                        changed |= ImGui::DragFloat("Refraction index", &sphere_material.refraction_index, 0.01f, 0.0f,
-                                                    10.0f);
+                        changed |= ImGui::SliderFloat("Reflection coefficient", &sphere_material.reflection_coefficient,
+                                                      0.0f, 1.0f);
+                        changed |= ImGui::SliderFloat("Refraction coefficient", &sphere_material.refraction_coefficient,
+                                                      0.0f, 1.0f);
+                        changed |= ImGui::SliderFloat("Refraction index", &sphere_material.refraction_index, 0.0f,
+                                                      10.0f);
+                        changed |= ImGui::SliderFloat("Glossiness", &sphere_material.glossiness, 0.0f, 1.0f);
                         changed |= ImGui::ColorEdit3("Absorption", glm::value_ptr(sphere_material.absorption));
 
                         if (changed)
@@ -418,12 +419,14 @@ void gl3::renderer::render_ui()
                         changed |= ImGui::ColorEdit3("Specular", glm::value_ptr(plane_material.specular));
                         changed |= ImGui::ColorEdit3("Ambient", glm::value_ptr(plane_material.ambient));
                         changed |= ImGui::DragFloat("Shininess", &plane_material.shininess, 1.0f, 0.0f);
-                        changed |= ImGui::DragFloat("Reflection coefficient", &plane_material.reflection_coefficient,
-                                                    0.01f, 0.0f, 1.0f);
-                        changed |= ImGui::DragFloat("Refraction coefficient", &plane_material.refraction_coefficient,
-                                                    0.01f, 0.0f, 1.0f);
-                        changed |= ImGui::DragFloat("Refraction index", &plane_material.refraction_index, 0.01f,
-                                                    0.0f, 10.0f);
+                        changed |= ImGui::SliderFloat("Reflection coefficient", &plane_material.reflection_coefficient,
+                                                      0.0f, 1.0f);
+                        changed |= ImGui::SliderFloat("Refraction coefficient", &plane_material.refraction_coefficient,
+                                                      0.0f, 1.0f);
+                        changed |= ImGui::SliderFloat("Refraction index", &plane_material.refraction_index,
+                                                      0.0f, 10.0f);
+                        changed |= ImGui::SliderFloat("Glossiness", &plane_material.glossiness, 0.0f, 1.0f);
+
                         changed |= ImGui::ColorEdit3("Absorption", glm::value_ptr(plane_material.absorption));
 
                         if (changed)
@@ -463,12 +466,15 @@ void gl3::renderer::render_ui()
                         changed |= ImGui::ColorEdit3("Specular", glm::value_ptr(triangle_material.specular));
                         changed |= ImGui::ColorEdit3("Ambient", glm::value_ptr(triangle_material.ambient));
                         changed |= ImGui::DragFloat("Shininess", &triangle_material.shininess, 1.0f, 0.0f);
-                        changed |= ImGui::DragFloat("Reflection coefficient", &triangle_material.reflection_coefficient,
-                                                    0.01f, 0.0f, 1.0f);
-                        changed |= ImGui::DragFloat("Refraction coefficient", &triangle_material.refraction_coefficient,
-                                                    0.01f, 0.0f, 1.0f);
-                        changed |= ImGui::DragFloat("Refraction index", &triangle_material.refraction_index, 0.01f,
-                                                    0.0f, 10.0f);
+                        changed |= ImGui::SliderFloat("Reflection coefficient",
+                                                      &triangle_material.reflection_coefficient,
+                                                      0.0f, 1.0f);
+                        changed |= ImGui::SliderFloat("Refraction coefficient",
+                                                      &triangle_material.refraction_coefficient,
+                                                      0.0f, 1.0f);
+                        changed |= ImGui::SliderFloat("Refraction index", &triangle_material.refraction_index, 0.0f,
+                                                      10.0f);
+                        changed |= ImGui::SliderFloat("Glossiness", &triangle_material.glossiness, 0.0f, 1.0f);
                         changed |= ImGui::ColorEdit3("Absorption", glm::value_ptr(triangle_material.absorption));
 
                         if (changed)
@@ -508,12 +514,13 @@ void gl3::renderer::render_ui()
                         changed |= ImGui::ColorEdit3("Specular", glm::value_ptr(csg_sphere_material.specular));
                         changed |= ImGui::ColorEdit3("Ambient", glm::value_ptr(csg_sphere_material.ambient));
                         changed |= ImGui::DragFloat("Shininess", &csg_sphere_material.shininess, 1.0f, 0.0f);
-                        changed |= ImGui::DragFloat("Reflection coefficient",
-                                                    &csg_sphere_material.reflection_coefficient, 0.01f, 0.0f, 1.0f);
-                        changed |= ImGui::DragFloat("Refraction coefficient",
-                                                    &csg_sphere_material.refraction_coefficient, 0.01f, 0.0f, 1.0f);
-                        changed |= ImGui::DragFloat("Refraction index", &csg_sphere_material.refraction_index, 0.01f,
-                                                    0.0f, 10.0f);
+                        changed |= ImGui::SliderFloat("Reflection coefficient",
+                                                      &csg_sphere_material.reflection_coefficient, 0.0f, 1.0f);
+                        changed |= ImGui::SliderFloat("Refraction coefficient",
+                                                      &csg_sphere_material.refraction_coefficient, 0.0f, 1.0f);
+                        changed |= ImGui::SliderFloat("Refraction index", &csg_sphere_material.refraction_index, 0.0f,
+                                                      10.0f);
+                        changed |= ImGui::SliderFloat("Glossiness", &csg_sphere_material.glossiness, 0.0f, 1.0f);
                         changed |= ImGui::ColorEdit3("Absorption", glm::value_ptr(csg_sphere_material.absorption));
 
                         if (changed)

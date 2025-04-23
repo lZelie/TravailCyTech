@@ -19,6 +19,7 @@ struct Material {
     float reflection_coef;
     float refraction_coef;
     float refraction_index;
+    float glossiness;
     vec3 absorption;
 };
 
@@ -378,8 +379,38 @@ vec2 compute_uv(){
     }
 }
 
-// The rest of the implementation follows the same pattern as the original shader
-// We just need to adapt references to use our UBO structures
+// Function to create a random direction in the hemisphere around a normal
+vec3 random_hemisphere_direction(vec3 normal) {
+    // Generate random point on sphere
+    float theta = 2.0f * 3.14159265359f * random();
+    float phi = acos(2.0f * random() - 1.0f);
+
+    // Convert to Cartesian coordinates
+    vec3 random_dir = vec3(sin(phi) * cos(theta), sin(phi) * sin(phi), cos(phi));
+
+    // Make sure it's in the right hemisphere
+    if(dot(random_dir, normal) < 0.0f) {
+        random_dir = -random_dir;
+    }
+    
+    return normalize(random_dir);
+}
+
+// Function to create a reflection direction with some randomness based on glossiness
+vec3 glossy_reflect(vec3 incident, vec3 normal, float glossiness) {
+    // Perfect reflection vector
+    vec3 reflection = reflect(incident, normal);
+    
+    if (glossiness < 0.001f) {
+        return reflection; // Perfect reflection for glossiness = 0
+    }
+
+    // Random vector in hemisphere around the normal
+    vec3 random_dir = random_hemisphere_direction(normal);
+
+    // Interpolate between perfect reflection and random direction based on glossiness
+    return normalize(mix(reflection, random_dir, glossiness));
+}
 
 vec3 raycast(vec2 uv) {
     // Array to store ray positions for primary and secondary rays
@@ -518,7 +549,7 @@ vec3 raycast(vec2 uv) {
                         // Handle both reflection and refraction (spawn additional ray if possible)
                         if (has_reflection && nb_rays < 16){
                             // Create a new reflected ray
-                            ray_dir[nb_rays] = reflect(-view_dir, normal);
+                            ray_dir[nb_rays] = glossy_reflect(-view_dir, normal, material.glossiness);
                             // Offset position to avoid self-intersection
                             ray_pos[nb_rays] = intersect_point + normal * 1e-3f;
 
@@ -544,7 +575,7 @@ vec3 raycast(vec2 uv) {
                     // Handle pure reflection (no refraction)
                     else if (has_reflection) {
                         // Calculate reflection direction
-                        ray_dir[i] = reflect(-view_dir, normal);
+                        ray_dir[i] = glossy_reflect(-view_dir, normal, material.glossiness);
                         // Offset position to avoid self-intersection
                         ray_pos[i] = intersect_point + normal * 1e-3f;
 

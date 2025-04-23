@@ -150,7 +150,7 @@ void scene_data::reset_to_default()
 
     // Reset materials to default
     objects.sphere_materials[0] = {{0.8f, 0.2f, 0.2f}, {1.0f, 1.0f, 1.0f}, {0.1f, 0.1f, 0.1f}, 32.0f, 1.0f};
-    objects.sphere_materials[1] = {{0.0f, 0.0f, 0.0f}, {0.9f, 0.9f, 0.9f}, {0.1f, 0.1f, 0.1f}, 128.0f, 0.0f, 1.0f, 1.333f, {0.8, 0.0, 0.0}};
+    objects.sphere_materials[1] = {{0.0f, 0.0f, 0.0f}, {0.9f, 0.9f, 0.9f}, {0.1f, 0.1f, 0.1f}, 128.0f, 0.0f, 1.0f, 1.333f,0.0f, {0.8, 0.0, 0.0}};
     objects.sphere_materials[2] = {{0.0f, 0.0f, 0.0f}, {1.0f, 1.0f, 1.0f}, {0.1f, 0.1f, 0.1f}, 256.0f, 0.0f, 1.0f, 1.5f};
     objects.sphere_materials[3] = {{0.0f, 0.0f, 0.0f}, {1.0f, 1.0f, 1.0f}, {0.1f, 0.1f, 0.1f}, 256.0f, 0.0f, 1.0f, 1.0f};
     objects.sphere_materials[4] = {{0.0f, 0.0f, 0.0f}, {1.0f, 1.0f, 1.0f}, {0.1f, 0.1f, 0.1f}, 256.0f, 0.5f, 0.5f, 1.12f};
